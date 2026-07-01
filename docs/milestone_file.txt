@@ -1,0 +1,334 @@
+# Restro Rasoi Backend Development Milestones
+
+## Instructions
+
+Before writing any code:
+
+- Read and understand the attached Project Flow PDF completely.
+- Treat the PDF as the single source of truth for all business logic, APIs, database design, validations, user flows, and requirements.
+- Build only the requested milestone.
+- Never implement future milestones unless explicitly instructed.
+- Preserve the same architecture throughout the project.
+- Never rewrite previously implemented modules unless fixing bugs or improving maintainability without changing functionality.
+- Follow production-grade coding practices.
+- Keep controllers thin.
+- Keep business logic inside services.
+- Keep validation inside the validators folder.
+- Never trust calculations from the frontend. Always compute totals on the backend.
+- Use modular, reusable, maintainable code.
+- Before finishing each milestone, verify that every requirement for that milestone has been completed.
+
+---
+
+# Milestone 1 — Backend Foundation
+
+## Goal
+
+Set up the complete backend architecture.
+
+### Implement
+
+- Complete production-grade folder structure.
+- Express server.
+- MongoDB connection.
+- Environment configuration.
+- Global error handler.
+- Async handler.
+- Response helper.
+- Logger.
+- Constants.
+- Utility functions.
+- Middleware structure.
+- Validators structure.
+- Health endpoint.
+- API versioning (`/api/v1`).
+- Base route structure.
+- Seed infrastructure.
+- Production-ready configuration.
+- Install and configure all required middleware.
+
+### Do NOT implement
+
+- Database models.
+- CRUD APIs.
+- Authentication.
+- Business logic.
+
+### Acceptance Criteria
+
+- Server starts successfully.
+- MongoDB connects successfully.
+- Folder structure is complete.
+- Architecture is ready for development.
+
+---
+
+# Milestone 2 — Database Layer
+
+## Goal
+
+Create the complete MongoDB database design.
+
+### Implement
+
+- Sale model.
+- Customer model.
+- MenuItem model.
+- Expenditure model.
+- User model.
+- Embedded SaleItem schema.
+- Enums.
+- Indexes.
+- Schema validation.
+- Mongoose middleware where appropriate.
+- Seed script for Menu Items.
+
+Follow every business rule from the Project Flow PDF.
+
+### Do NOT implement
+
+- Controllers.
+- CRUD logic.
+
+### Acceptance Criteria
+
+- Every collection matches the PDF.
+- Models are production-ready.
+
+---
+
+# Milestone 3 — Authentication
+
+## Goal
+
+Implement authentication and authorization.
+
+### Implement
+
+- JWT authentication.
+- HttpOnly cookie authentication.
+- bcrypt password hashing.
+- Login.
+- Logout.
+- Current user endpoint.
+- Authentication middleware.
+- Role middleware.
+- Admin and Owner roles.
+- Long-lived sessions.
+
+### Acceptance Criteria
+
+Authentication is fully functional.
+
+---
+
+# Milestone 4 — Menu Module
+
+## Goal
+
+Complete Menu Master.
+
+### Implement
+
+- CRUD APIs.
+- Validation.
+- Search.
+- Filtering.
+- Activate/deactivate items.
+- Seed integration.
+- Business rules.
+- Controllers.
+- Services.
+- Routes.
+
+### Acceptance Criteria
+
+Menu module is fully functional.
+
+---
+
+# Milestone 5 — Sales Module
+
+## Goal
+
+Implement the Sales system.
+
+### Implement
+
+- CRUD APIs.
+- Validation.
+- Snapshot pricing.
+- Automatic line totals.
+- Automatic items total.
+- Automatic grand total.
+- Customer auto-create/update.
+- Filtering.
+- Pagination.
+- Sorting.
+- Searching.
+- Payment rules.
+- Editing.
+- Deleting.
+
+Never trust frontend totals.
+
+Always recalculate totals on the backend.
+
+### Acceptance Criteria
+
+Sales workflow matches the Project Flow PDF completely.
+
+---
+
+# Milestone 6 — Expenditure Module
+
+## Goal
+
+Implement Expenditure.
+
+### Implement
+
+- CRUD.
+- Validation.
+- Filtering.
+- Searching.
+- Pagination.
+- Sorting.
+
+### Acceptance Criteria
+
+Expenditure module is complete.
+
+---
+
+# Milestone 7 — Customer Module
+
+## Goal
+
+Implement Customer Logbook.
+
+### Implement
+
+- CRUD.
+- Customer profile.
+- Order history.
+- Customer statistics.
+- Search.
+- Sorting.
+- Aggregated totals.
+
+### Acceptance Criteria
+
+Customer module matches the Project Flow PDF.
+
+---
+
+# Milestone 8 — Dashboard & Reports
+
+## Goal
+
+Implement Dashboard.
+
+### Implement
+
+- Summary endpoint.
+- Monthly endpoint.
+- Trend endpoint.
+- Net profit.
+- Unpaid dues.
+- Aggregation pipelines.
+- Top selling items.
+
+Use efficient MongoDB aggregation pipelines.
+
+### Acceptance Criteria
+
+Dashboard APIs match the Project Flow PDF.
+
+---
+
+# Milestone 9 — Final Production Review
+
+## Goal
+
+Prepare the backend for deployment.
+
+### Perform
+
+- Code review.
+- Performance review.
+- Security review.
+- Refactoring.
+- Query optimization.
+- Remove duplicate logic.
+- Verify every API.
+- Verify validations.
+- Verify error handling.
+- Verify folder structure.
+- Verify environment configuration.
+
+Ensure the backend is production-ready.
+
+---
+
+# Initial Prompt
+
+Analyze the attached Project Flow PDF and this Milestone document completely before writing any code. Treat the Project Flow PDF as the functional specification and this document as the implementation roadmap. Build only the requested milestone. Do not proceed to the next milestone until instructed. Preserve the same architecture throughout the project.
+
+---
+
+# Milestone Prompts
+
+Milestone 1
+
+```
+Implement Milestone 1.
+```
+
+Milestone 2
+
+```
+Implement Milestone 2.
+```
+
+Milestone 3
+
+```
+Implement Milestone 3.
+```
+
+Milestone 4
+
+```
+Implement Milestone 4.
+```
+
+Milestone 5
+
+```
+Implement Milestone 5.
+```
+
+Milestone 6
+
+```
+Implement Milestone 6.
+```
+
+Milestone 7
+
+```
+Implement Milestone 7.
+```
+
+Milestone 8
+
+```
+Implement Milestone 8.
+```
+
+Milestone 9
+
+```
+Implement Milestone 9.
+```
