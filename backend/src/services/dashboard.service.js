@@ -1,5 +1,6 @@
 import { Sale } from "../models/Sale.js";
 import { Expenditure } from "../models/Expenditure.js";
+import { MenuItem } from "../models/MenuItem.js";
 
 export const getDashboardSummary = async (matchStage = {}) => {
   // Aggregate Sales
@@ -131,5 +132,94 @@ export const getTopItems = async (matchStage = {}) => {
     itemName: item._id,
     quantity: item.quantity,
     revenue: item.lineTotal
+  }));
+};
+
+// Daily chart data for the last N days
+export const getChartData = async (days = 30) => {
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+
+  const matchStage = { date: { $gte: startDate, $lte: endDate } };
+
+  const salesByDay = await Sale.aggregate([
+    { $match: matchStage },
+    {
+      $group: {
+        _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+        sales: { $sum: "$grandTotal" },
+      },
+    },
+  ]);
+
+  const expByDay = await Expenditure.aggregate([
+    { $match: matchStage },
+    {
+      $group: {
+        _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+        expenses: { $sum: "$amount" },
+      },
+    },
+  ]);
+
+  const dayMap = {};
+  salesByDay.forEach((d) => {
+    dayMap[d._id] = { date: d._id, sales: d.sales, expenses: 0 };
+  });
+  expByDay.forEach((d) => {
+    if (!dayMap[d._id]) dayMap[d._id] = { date: d._id, sales: 0, expenses: d.expenses };
+    else dayMap[d._id].expenses = d.expenses;
+  });
+
+  return Object.values(dayMap).sort((a, b) => (a.date > b.date ? 1 : -1));
+};
+
+// Top items shaped for the frontend TopItem type
+export const getTopItemsForDashboard = async (matchStage = {}) => {
+  const topItems = await Sale.aggregate([
+    { $match: matchStage },
+    { $unwind: "$items" },
+    {
+      $group: {
+        _id: "$items.itemName",
+        ordersCount: { $sum: "$items.quantity" },
+      },
+    },
+    { $sort: { ordersCount: -1 } },
+    { $limit: 10 },
+  ]);
+
+  const maxOrders = topItems.length ? topItems[0].ordersCount : 0;
+
+  // Join with MenuItem to get category
+  const names = topItems.map((t) => t._id);
+  const menuItems = await MenuItem.find({ name: { $in: names } }).select("name category");
+  const categoryMap = {};
+  menuItems.forEach((m) => { categoryMap[m.name] = m.category; });
+
+  return topItems.map((item) => ({
+    _id: item._id,
+    name: item._id,
+    category: categoryMap[item._id] || "Uncategorized",
+    ordersCount: item.ordersCount,
+    maxOrders,
+  }));
+};
+
+// Recent sales
+export const getRecentSales = async (limit = 10) => {
+  const sales = await Sale.find({})
+    .sort({ date: -1 })
+    .limit(limit)
+    .select("invoiceId customerName grandTotal paymentStatus date");
+
+  return sales.map((s) => ({
+    _id: s._id,
+    invoiceId: s.invoiceId,
+    customerName: s.customerName,
+    amount: s.grandTotal,
+    status: s.paymentStatus,
+    date: s.date,
   }));
 };

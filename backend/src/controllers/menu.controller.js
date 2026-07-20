@@ -4,9 +4,9 @@ import * as menuService from "../services/menu.service.js";
 import { validateCreateMenuItem, validateUpdateMenuItem } from "../validators/menu.validator.js";
 
 export const getMenuItems = asyncHandler(async (req, res) => {
-  const { search, category, activeOnly } = req.query;
-  const items = await menuService.getMenuItems({ search, category, activeOnly: activeOnly !== "false" });
-  return res.status(200).json(new ApiResponse(200, items, "Menu items fetched successfully"));
+  const { search, category, activeOnly, page, limit } = req.query;
+  const result = await menuService.getMenuItems({ search, category, activeOnly, page, limit });
+  return res.status(200).json(new ApiResponse(200, result, "Menu items fetched successfully"));
 });
 
 export const createMenuItem = asyncHandler(async (req, res) => {

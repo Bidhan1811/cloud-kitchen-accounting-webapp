@@ -13,7 +13,7 @@ router.use("/health", healthRouter);
 router.use("/auth", authRouter);
 router.use("/menu", menuRouter);
 router.use("/sales", saleRouter);
-router.use("/expenditure", expenditureRouter);
+router.use("/expenditures", expenditureRouter);
 router.use("/customers", customerRouter);
 router.use("/dashboard", dashboardRouter);
 

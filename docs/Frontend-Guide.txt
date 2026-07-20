@@ -1,0 +1,9313 @@
+Part 1 — Frontend Philosophy & Architecture
+1.1 Project Objective
+
+The frontend of Restro Rasoi is not meant to be another CRUD dashboard.
+
+It should feel like a premium Apple-quality application while remaining extremely fast and simple enough for someone with minimal technical knowledge (like your mother) to use daily.
+
+The frontend has three primary objectives:
+
+1. Speed
+
+The application should allow recording a sale or expenditure in under 30 seconds, matching the business requirement described in the project flow.
+
+That means:
+
+minimal typing
+large touch targets
+keyboard shortcuts
+dropdowns instead of text inputs
+automatic calculations
+minimal page switching
+
+Every design decision should reduce the number of clicks required.
+
+2. Simplicity
+
+The user should never wonder
+
+"What do I do next?"
+
+Every page should have one primary action.
+
+Examples
+
+Dashboard
+
+→ View business health
+
+Sales
+
+→ Record a Sale
+
+Customers
+
+→ Find a Customer
+
+Menu
+
+→ Manage Prices
+
+Nothing more.
+
+3. Reliability
+
+The frontend is only responsible for
+
+displaying information
+collecting user input
+validating basic inputs
+improving UX
+
+It must never become the source of truth.
+
+The backend owns:
+
+totals
+calculations
+profit
+payment validation
+business rules
+
+If frontend and backend disagree,
+
+Backend always wins.
+
+1.2 Engineering Principles
+
+Every component written in this project should satisfy these principles.
+
+Principle 1
+Reuse Before Rewrite
+
+If similar UI already exists,
+
+Do NOT create another component.
+
+Instead,
+
+Extract it into a reusable component.
+
+Example
+
+Bad
+
+SalesTable
+
+ExpenseTable
+
+CustomerTable
+
+
+Three almost identical tables.
+
+Good
+
+DataTable
+
+↓
+
+SalesTable
+
+↓
+
+ExpenseTable
+
+↓
+
+CustomerTable
+
+
+One reusable table.
+
+Principle 2
+Components should have one responsibility
+
+Each component should solve one problem.
+
+Example
+
+Good
+
+SearchInput
+
+
+Only searches.
+
+Good
+
+StatusBadge
+
+
+Only displays status.
+
+Bad
+
+CustomerCard
+
+fetches API
+validates form
+edits customer
+opens modal
+deletes customer
+
+One component doing five jobs.
+
+Principle 3
+Composition over duplication
+
+Instead of
+
+SalesCard
+
+ExpenseCard
+
+ProfitCard
+
+
+We create
+
+SummaryCard
+
+
+and configure it.
+
+Example
+
+<SummaryCard
+title="Today's Sales"
+icon={<Wallet />}
+value={8450}
+/>
+
+<SummaryCard
+title="Today's Orders"
+icon={<ShoppingCart />}
+value={24}
+/>
+
+One component.
+
+Infinite variations.
+
+Principle 4
+Business logic never lives inside UI
+
+Bad
+
+const total =
+items.reduce(...)
+
+inside five different components.
+
+Good
+
+utils/
+
+calculateSaleTotal()
+
+
+One implementation.
+
+Every component uses it.
+
+Principle 5
+Every repeated logic becomes a hook
+
+Instead of
+
+useEffect(...)
+
+useEffect(...)
+
+useEffect(...)
+
+across many pages,
+
+Create
+
+useCustomers()
+
+useSales()
+
+useDashboard()
+
+useMenu()
+
+1.3 Frontend Architecture
+
+The architecture follows a layered approach.
+
+Pages
+
+↓
+
+Feature Components
+
+↓
+
+Shared Components
+
+↓
+
+Hooks
+
+↓
+
+Services
+
+↓
+
+API Client
+
+↓
+
+Backend
+
+Every layer only communicates with the one below it.
+
+Never skip layers.
+
+Example
+
+Dashboard Page
+
+↓
+
+SummaryCards
+
+↓
+
+useDashboard()
+
+↓
+
+dashboardService.ts
+
+↓
+
+Axios Client
+
+↓
+
+Express Backend
+
+Not
+
+Dashboard Page
+
+↓
+
+axios.get()
+
+This keeps components focused on presentation instead of networking.
+
+1.4 Folder Philosophy
+
+Folders should represent
+
+Features
+
+not
+
+file types.
+
+Instead of
+
+components/
+
+pages/
+
+utils/
+
+
+Everything mixed.
+
+We'll organize by responsibility.
+
+Example
+
+features/
+
+sales/
+
+customers/
+
+dashboard/
+
+menu/
+
+
+Each feature owns
+
+components
+hooks
+services
+types
+
+Shared code lives outside.
+
+This scales far better as the application grows.
+
+1.5 Design Philosophy
+
+The uploaded Design.md already establishes the visual language: a warm, Apple-inspired Liquid Glass interface with a fixed blurred kitchen background, translucent surfaces, and consistent design tokens.
+
+We adopt the following rules:
+
+Rule 1
+
+Every page must feel like part of the same application.
+
+Changing pages should never feel like switching websites.
+
+Rule 2
+
+The background never changes.
+
+Only content changes.
+
+Rule 3
+
+Every floating surface uses the same glass recipe.
+
+Only opacity changes.
+
+Never invent new shadows.
+
+Never invent new borders.
+
+Rule 4
+
+Spacing is consistent.
+
+If cards have
+
+24px
+
+padding,
+
+Every card has
+
+24px
+
+padding.
+
+Rule 5
+
+Animation is subtle.
+
+Animation exists to communicate.
+
+Not impress.
+
+1.6 Mobile-First Philosophy
+
+Although this is a web app,
+
+The primary user may use
+
+mobile
+
+or
+
+tablet
+
+more often than desktop.
+
+Therefore
+
+Desktop is an enhancement.
+
+Not the default.
+
+Every screen should be designed
+
+Mobile
+
+↓
+
+Tablet
+
+↓
+
+Desktop
+
+Never the opposite.
+
+1.7 Data Flow Philosophy
+
+Data only moves one direction.
+
+Backend
+
+↓
+
+React Query
+
+↓
+
+Feature Hook
+
+↓
+
+Component
+
+↓
+
+User
+
+User Action
+
+↓
+
+Mutation
+
+↓
+
+Backend
+
+↓
+
+React Query Cache
+
+↓
+
+UI Refresh
+
+No manual synchronization.
+
+No duplicated state.
+
+No prop drilling across multiple levels.
+
+1.8 What the Frontend Owns
+
+The frontend is responsible for:
+
+Rendering UI
+Responsive layouts
+Client-side validation
+User interactions
+Loading states
+Empty states
+Animations
+API calls
+Caching
+Form handling
+Navigation
+Accessibility
+Optimistic UI (where appropriate)
+
+It should not contain business rules that determine financial correctness.
+
+1.9 What the Frontend Must Never Do
+
+To keep the codebase maintainable, the following are prohibited unless there is a justified need:
+
+Store server data in React Context.
+Use multiple state management libraries.
+Duplicate business calculations across components.
+Call APIs directly from page components.
+Hardcode colors, spacing, or typography instead of using design tokens.
+Create one-off components that differ only slightly from existing reusable components.
+Introduce UI libraries that overlap in functionality (for example, using both shadcn/ui and Material UI).
+Trust values like grandTotal or netProfit received from user-modifiable inputs; always treat backend responses as authoritative.
+1.10 Success Criteria
+
+When this frontend is complete, it should meet the following standards:
+
+Consistent: Every page follows the same layout, spacing, and interaction patterns.
+Reusable: New features are built mostly by composing existing components.
+Maintainable: A developer can locate any feature or component quickly.
+Performant: Minimal bundle size, efficient rendering, and smooth interactions.
+Accessible: Keyboard navigation, focus management, and readable contrast are built in from the start.
+Production-ready: The project can grow from a family accounting tool into a larger business application without requiring a complete architectural rewrite.
+													       
+Part 2 — Design System & UI Foundation
+
+Objective: Build the entire UI around one unified design language so that every page, component, and interaction feels like it belongs to the same application. The Design.md already defines the visual direction; this section defines the engineering rules for implementing it consistently.
+
+2.1 Design Philosophy
+
+The Design System is the foundation of the frontend.
+
+Every page should be built using the same:
+
+colors
+spacing
+shadows
+typography
+radii
+animations
+components
+
+No page should invent its own styling.
+
+If every page has different spacing, shadows or button styles, the application quickly starts looking like several unrelated mini-projects.
+
+The goal is:
+
+Build once. Reuse everywhere.
+
+2.2 Design Hierarchy
+
+Every UI element belongs to one of these levels.
+
+Brand Identity
+        │
+        ▼
+Design Tokens
+        │
+        ▼
+Primitive Components
+        │
+        ▼
+Composite Components
+        │
+        ▼
+Feature Components
+        │
+        ▼
+Pages
+
+Example
+
+Color Token
+
+↓
+
+Button Primitive
+
+↓
+
+Primary Button
+
+↓
+
+Add Sale Button
+
+↓
+
+Sales Page
+
+Notice that the Sales page never decides its own button styling.
+
+2.3 Design Tokens
+
+Never hardcode values.
+
+Bad
+
+className="rounded-[18px] bg-white text-[#212121]"
+
+Good
+
+rounded-card
+
+bg-glass
+
+text-primary
+
+Everything should originate from a centralized token system.
+
+Token Categories
+
+Create tokens for
+
+Colors
+
+Typography
+
+Spacing
+
+Radius
+
+Blur
+
+Borders
+
+Shadows
+
+Animation
+
+Breakpoints
+
+Z-index
+
+Opacity
+2.4 Color System
+
+The uploaded Design.md already defines the color palette. We follow it exactly rather than introducing additional colors.
+
+The application should only have five color groups.
+
+1. Background
+
+Responsible for
+
+overall warmth
+ambience
+
+Never used inside components.
+
+2. Glass
+
+Responsible for
+
+cards
+navbar
+sidebar
+modal
+drawer
+table
+inputs
+
+Opacity changes.
+
+Color does not.
+
+3. Accent
+
+One accent only.
+
+Warm Amber
+
+Used for
+
+buttons
+links
+active navigation
+chart line
+selected item
+focus ring
+
+Never introduce another accent.
+
+No blue buttons.
+
+No green buttons.
+
+4. Semantic Colors
+
+Only
+
+Success
+
+Warning
+
+Danger
+
+Info
+
+Nothing else.
+
+These communicate state.
+
+Never decoration.
+
+5. Text Colors
+
+Three only.
+
+Primary
+
+Secondary
+
+Muted
+
+If you need a fourth text color,
+
+You're probably using color incorrectly.
+
+2.5 Tailwind Theme
+
+Instead of writing
+
+bg-[#C8873A]
+
+Configure
+
+theme.extend.colors
+
+Example
+
+colors: {
+
+primary: "...",
+
+glass: "...",
+
+success: "...",
+
+danger: "...",
+
+warning: "...",
+
+text: {
+
+primary,
+
+secondary,
+
+muted
+
+}
+
+}
+
+Now components become
+
+bg-primary
+
+text-text-primary
+
+border-glass
+
+instead of hex values.
+
+2.6 Typography System
+
+Fonts should communicate hierarchy.
+
+Not decoration.
+
+Heading Font
+
+Used only for
+
+page title
+login
+hero title
+
+Never table headers.
+
+Never buttons.
+
+Body Font
+
+Used for
+
+buttons
+sidebar
+navbar
+inputs
+labels
+cards
+table
+filters
+Mono Font
+
+Numbers only.
+
+₹28,450
+
+₹2,500
+
+₹120
+
+Using monospaced numbers makes tables much easier to scan.
+
+2.7 Typography Hierarchy
+
+Never randomly choose font sizes.
+
+Use fixed levels.
+
+Hero
+
+↓
+
+Page Heading
+
+↓
+
+Section Heading
+
+↓
+
+Card Title
+
+↓
+
+Body
+
+↓
+
+Label
+
+↓
+
+Caption
+
+Every page should reuse these.
+
+2.8 Spacing System
+
+Spacing should be mathematical.
+
+Not visual guessing.
+
+Allowed spacing
+
+4
+
+8
+
+12
+
+16
+
+20
+
+24
+
+32
+
+40
+
+48
+
+64
+
+Nothing in-between.
+
+Don't write
+
+19px
+
+27px
+
+34px
+Component Padding
+
+Buttons
+
+12 x 20
+
+Cards
+
+24
+
+Forms
+
+20
+
+Sidebar
+
+20
+
+Modals
+
+28
+
+The user shouldn't notice spacing.
+
+They should feel consistency.
+
+2.9 Radius System
+
+The entire app uses only
+
+Small
+
+Medium
+
+Large
+
+XL
+
+Pill
+
+No page should invent
+
+rounded-[37px]
+2.10 Glass Surface Rules
+
+This project is centered around Apple's Liquid Glass aesthetic, with warm translucent surfaces layered over a fixed blurred kitchen background.
+
+There are only
+
+Background Layer
+
+↓
+
+Glass Panel
+
+↓
+
+Glass Card
+
+↓
+
+Glass Input
+
+↓
+
+Glass Modal
+
+The recipe changes only in
+
+opacity
+blur
+
+Everything else remains identical.
+
+2.11 Shadows
+
+Shadow represents elevation.
+
+Nothing else.
+
+Background
+
+↓
+
+Panel
+
+↓
+
+Card
+
+↓
+
+Dropdown
+
+↓
+
+Modal
+
+Five levels.
+
+No more.
+
+2.12 Blur System
+
+Blur should indicate
+
+importance.
+
+Background
+
+40
+
+↓
+
+Panel
+
+20
+
+↓
+
+Card
+
+16
+
+↓
+
+Input
+
+8
+
+↓
+
+Tooltip
+
+6
+
+Never increase blur randomly.
+
+2.13 Border System
+
+Every glass component uses
+
+1px border
+
+semi-transparent white
+
+No thick borders.
+
+No colored borders.
+
+Only focus state uses accent color.
+
+2.14 Icon System
+
+Use
+
+Lucide React
+
+Only.
+
+No Heroicons.
+
+No Font Awesome.
+
+No Material Icons.
+
+Consistency matters.
+
+Icon Sizes
+16
+
+20
+
+24
+
+32
+
+Nothing else.
+
+2.15 Button System
+
+Only four button types exist.
+
+Primary
+
+Used for
+
+Save
+
+Add
+
+Create
+
+Login
+
+Continue
+Secondary
+Cancel
+
+Back
+
+Close
+Ghost
+Edit
+
+Filter
+
+Sort
+Danger
+Delete
+
+Remove
+
+Reset
+
+If another button appears,
+
+Ask
+
+Can one of these four styles work?
+
+Usually yes.
+
+2.16 Form System
+
+Every form follows
+
+Label
+
+↓
+
+Input
+
+↓
+
+Helper Text
+
+↓
+
+Error
+
+Never
+
+Input
+
+↓
+
+Label
+2.17 Input Rules
+
+Every input
+
+same height
+same radius
+same font
+same padding
+
+The only variation
+
+textarea
+
+Everything else looks identical.
+
+2.18 Feedback States
+
+Every interactive component supports
+
+Default
+
+Hover
+
+Focus
+
+Active
+
+Disabled
+
+Loading
+
+Error
+
+Success
+
+Do not build components without considering all these states.
+
+2.19 Motion Philosophy
+
+Animation should communicate
+
+cause
+
+↓
+
+effect
+
+Examples
+
+Drawer opens
+
+↓
+
+slides
+
+Saving
+
+↓
+
+spinner
+
+Delete
+
+↓
+
+fade away
+
+Loading
+
+↓
+
+skeleton
+
+Animation never exists
+
+just because it looks cool.
+
+2.20 Animation Rules
+
+Maximum duration
+
+300ms
+
+Hover
+
+150ms
+
+Buttons
+
+120ms
+
+Drawer
+
+250ms
+
+Page
+
+250ms
+
+Nothing slower.
+
+2.21 Responsive Breakpoints
+
+Never design desktop first.
+
+Use
+
+Mobile
+
+↓
+
+Tablet
+
+↓
+
+Laptop
+
+↓
+
+Desktop
+
+Tailwind
+
+sm
+
+md
+
+lg
+
+xl
+
+2xl
+
+No custom breakpoints unless absolutely necessary.
+
+2.22 Accessibility Rules
+
+Minimum button height
+
+44px
+
+Minimum touch spacing
+
+8px
+
+Visible focus ring
+
+Always
+
+Never remove
+
+outline
+
+without replacing it.
+
+2.23 Loading States
+
+Never show empty white space.
+
+Use
+
+Skeleton
+
+↓
+
+Spinner
+
+↓
+
+Progress
+
+↓
+
+Placeholder
+
+Depending on the context.
+
+2.24 Empty States
+
+Every table
+
+Every chart
+
+Every search
+
+Every customer page
+
+Every menu page
+
+must have an empty state.
+
+Never show
+
+[]
+
+or a blank card.
+
+Example:
+
+No sales found
+
+Record your first sale to see it appear here.
+
+[ Add Sale ]
+2.25 Error States
+
+Don't display backend errors directly.
+
+Instead
+
+Unable to load sales.
+
+Retry
+
+Never
+
+500 Internal Server Error
+
+to the user.
+
+2.26 Design System Rules
+
+Every PR or feature should satisfy these questions before being merged:
+
+Does it reuse existing design tokens?
+Does it reuse an existing component?
+Does it introduce a new color unnecessarily?
+Does it introduce a new spacing value?
+Does it follow the typography scale?
+Does it support loading, error, empty, and disabled states?
+Does it work on mobile first?
+Does it preserve the Liquid Glass aesthetic established by the design system?
+
+If the answer to any of these is no, revisit the implementation before moving forward.                                                
+
+Part 3 — Project Structure & Folder Architecture
+
+Objective: Build a folder structure that remains clean, scalable, and easy to navigate as the application grows. A well-organized codebase reduces cognitive load, encourages reuse, and prevents the accumulation of dead code.
+
+3.1 Folder Philosophy
+
+The biggest mistake in frontend projects is organizing files by type instead of feature.
+
+For example:
+
+❌ Bad
+
+components/
+
+hooks/
+
+pages/
+
+utils/
+
+services/
+
+types/
+
+Initially, this looks organized.
+
+After 6 months, you end up with
+
+components/
+
+Button.tsx
+
+Button2.tsx
+
+SalesButton.tsx
+
+CustomerButton.tsx
+
+MenuButton.tsx
+
+Modal.tsx
+
+Modal2.tsx
+
+Drawer.tsx
+
+Table.tsx
+
+TableNew.tsx
+
+TableFinal.tsx
+
+Nobody knows where anything belongs.
+
+Instead, organize by responsibility.
+
+Every feature owns its own
+
+components
+hooks
+services
+types
+validation
+
+This creates natural boundaries.
+
+3.2 Folder Structure Philosophy
+
+Think of the project as layers.
+
+App
+
+↓
+
+Features
+
+↓
+
+Shared Components
+
+↓
+
+Services
+
+↓
+
+Utilities
+
+↓
+
+Infrastructure
+
+Every folder should answer exactly one question.
+
+3.3 Complete Folder Structure
+src/
+
+│
+
+├── app/
+
+│
+
+├── components/
+
+│
+
+├── features/
+
+│
+
+├── hooks/
+
+│
+
+├── lib/
+
+│
+
+├── providers/
+
+│
+
+├── services/
+
+│
+
+├── types/
+
+│
+
+├── constants/
+
+│
+
+├── utils/
+
+│
+
+├── styles/
+
+│
+
+├── assets/
+
+│
+
+└── middleware/
+
+Nothing more.
+
+Nothing less.
+
+3.4 The App Folder
+app/
+
+This is reserved for routing only.
+
+It should never become a dumping ground.
+
+Allowed:
+
+app/
+
+layout.tsx
+
+page.tsx
+
+loading.tsx
+
+error.tsx
+
+not-found.tsx
+
+dashboard/
+
+sales/
+
+customers/
+
+menu/
+
+Not allowed:
+
+app/
+
+components/
+
+utils/
+
+hooks/
+
+api/
+
+services/
+
+Keep routing separate from business logic.
+
+3.5 Route Structure
+app/
+
+layout.tsx
+
+login/
+
+page.tsx
+
+dashboard/
+
+page.tsx
+
+sales/
+
+page.tsx
+
+customers/
+
+page.tsx
+
+menu/
+
+page.tsx
+
+settings/
+
+page.tsx
+
+Every page should only
+
+fetch initial data (if needed)
+compose feature components
+export metadata
+
+Nothing else.
+
+3.6 Components Folder
+
+Contains components shared across multiple features.
+
+components/
+
+ui/
+
+layout/
+
+common/
+
+Never put Sales-specific components here.
+
+ui/
+
+Reusable primitives.
+
+Example
+
+Button
+
+Input
+
+Badge
+
+Card
+
+Drawer
+
+Modal
+
+Table
+
+Tabs
+
+Tooltip
+
+Popover
+
+Dropdown
+
+Checkbox
+
+Radio
+
+Avatar
+
+Separator
+
+Think of these as LEGO bricks.
+
+layout/
+
+Application shell.
+
+Sidebar
+
+Navbar
+
+AppShell
+
+PageHeader
+
+MobileNavigation
+
+Footer
+common/
+
+Frequently reused business-independent components.
+
+SearchBox
+
+EmptyState
+
+LoadingState
+
+ConfirmDialog
+
+Pagination
+
+StatusBadge
+
+SummaryCard
+
+TrendChart
+
+If three or more features use a component,
+
+move it here.
+
+3.7 Features Folder
+
+This is the heart of the application.
+
+Every business module owns itself.
+
+features/
+
+dashboard/
+
+sales/
+
+customers/
+
+menu/
+
+expenditure/
+
+settings/
+
+Example
+
+sales/
+
+components/
+
+hooks/
+
+services/
+
+types/
+
+schemas/
+
+utils/
+
+Everything Sales-related lives here.
+
+Nothing leaks outside.
+
+3.8 Example Sales Feature
+sales/
+
+components/
+
+SalesTable.tsx
+
+SaleDrawer.tsx
+
+SaleForm.tsx
+
+SaleFilters.tsx
+
+ItemPicker.tsx
+
+hooks/
+
+useSales.ts
+
+useSale.ts
+
+useCreateSale.ts
+
+useUpdateSale.ts
+
+services/
+
+sales.service.ts
+
+schemas/
+
+sale.schema.ts
+
+types/
+
+sale.types.ts
+
+utils/
+
+sale.mapper.ts
+
+Notice
+
+No Sales code exists elsewhere.
+
+3.9 Hooks Folder
+
+Global hooks only.
+
+hooks/
+
+useDebounce
+
+useMediaQuery
+
+useLocalStorage
+
+useMounted
+
+usePrevious
+
+useClickOutside
+
+useKeyboardShortcut
+
+Feature-specific hooks stay inside features.
+
+3.10 Services Folder
+
+Contains infrastructure-level services.
+
+services/
+
+api/
+
+auth/
+
+storage/
+
+Example
+
+services/
+
+api/
+
+axios.ts
+
+queryClient.ts
+
+auth/
+
+auth.service.ts
+
+Not
+
+sales.service.ts
+
+That belongs inside
+
+features/sales
+3.11 Lib Folder
+
+Contains third-party configuration.
+
+lib/
+
+axios
+
+react-query
+
+dayjs
+
+chart
+
+
+Think
+
+configuration
+
+not
+
+business logic.
+
+Example
+
+lib/
+
+axios.ts
+
+query-client.ts
+
+dayjs.ts
+3.12 Providers Folder
+
+All React Providers.
+
+providers/
+
+QueryProvider
+
+ThemeProvider
+
+AuthProvider
+
+
+Instead of
+
+layout.tsx
+
+being 400 lines long.
+
+3.13 Utils Folder
+
+Pure functions only.
+
+No React.
+
+No JSX.
+
+Example
+
+formatCurrency()
+
+formatDate()
+
+capitalize()
+
+calculateAge()
+
+generateAvatar()
+
+truncate()
+
+If it imports React,
+
+it doesn't belong here.
+
+3.14 Constants Folder
+
+Everything static.
+
+constants/
+
+routes.ts
+
+colors.ts
+
+navigation.ts
+
+paymentModes.ts
+
+expenseCategories.ts
+
+queryKeys.ts
+
+Avoid
+
+const routes = ...
+
+inside components.
+
+3.15 Types Folder
+
+Global types.
+
+ApiResponse
+
+Pagination
+
+User
+
+Auth
+
+ErrorResponse
+
+Feature types stay inside features.
+
+3.16 Styles Folder
+
+Only global styling.
+
+globals.css
+
+theme.css
+
+animations.css
+
+Component CSS belongs beside the component (if needed), though Tailwind utility classes should be the primary styling approach.
+
+3.17 Assets Folder
+
+Only static assets.
+
+background/
+
+logo/
+
+icons/
+
+illustrations/
+
+Don't mix SVGs inside components.
+
+3.18 File Naming Convention
+
+Components
+
+PascalCase
+
+Example
+
+SaleDrawer.tsx
+
+SummaryCard.tsx
+
+StatusBadge.tsx
+
+Hooks
+
+useSomething.ts
+
+Example
+
+useSales.ts
+
+useDashboard.ts
+
+useDebounce.ts
+
+Services
+
+something.service.ts
+
+Example
+
+sales.service.ts
+
+dashboard.service.ts
+
+Schemas
+
+sale.schema.ts
+
+Types
+
+sale.types.ts
+
+Constants
+
+paymentModes.ts
+
+Utilities
+
+formatCurrency.ts
+3.19 Barrel Exports
+
+Every folder should expose a single entry point.
+
+Example
+
+components/ui/
+
+Button.tsx
+
+Card.tsx
+
+Input.tsx
+
+index.ts
+
+Inside
+
+export { Button } from "./Button";
+export { Card } from "./Card";
+export { Input } from "./Input";
+
+Then imports become
+
+import { Button, Card } from "@/components/ui";
+
+instead of long relative paths.
+
+3.20 Absolute Imports
+
+Never write
+
+../../../../components/Button
+
+Use
+
+@/components/ui/Button
+
+Configure path aliases once in tsconfig.json.
+
+This improves readability and makes refactoring easier.
+
+3.21 One Component, One File
+
+Never combine unrelated components.
+
+Bad
+
+Sales.tsx
+
+Button
+
+Drawer
+
+Modal
+
+Badge
+
+Table
+
+Good
+
+Button.tsx
+
+Drawer.tsx
+
+Badge.tsx
+
+Small files are easier to maintain and test.
+
+3.22 Co-location Rules
+
+Keep files close to where they are used.
+
+Example:
+
+SaleDrawer.tsx
+
+should live beside
+
+SaleForm.tsx
+
+not in unrelated folders.
+
+Only promote a component to components/common when it's genuinely shared across multiple features.
+
+3.23 Import Direction Rules
+
+Dependencies should flow downward.
+
+Page
+
+↓
+
+Feature
+
+↓
+
+Shared Component
+
+↓
+
+Utility
+
+Never reverse the flow.
+
+For example:
+
+A shared Button should never import SaleForm.
+A utility should never import a React component.
+
+This prevents circular dependencies and keeps the architecture clean.
+
+3.24 Dead Code Policy
+
+One of the project goals is to avoid unnecessary code.
+
+Rules:
+
+Remove unused components immediately.
+Delete abandoned utility functions.
+Avoid keeping "future" code commented out.
+Don't create placeholder folders "just in case."
+Remove unused imports before every commit.
+If a dependency isn't used, uninstall it.
+
+Treat the codebase like a workspace—keep it tidy.
+
+3.25 Scalability Rules
+
+When adding a new feature, the process should always be:
+
+Create a new folder under features/.
+Add only the files required:
+components/
+hooks/
+services/
+types/
+schemas/ (if forms are involved)
+Reuse existing shared components wherever possible.
+Avoid modifying unrelated features unless necessary.
+
+This keeps new features isolated and reduces the risk of regressions.
+
+3.26 Folder Structure Checklist
+
+Before introducing a new file, ask:
+
+Does a similar file already exist?
+Does this belong to a specific feature?
+Can this be reused elsewhere?
+Should it live in components, features, or utils?
+Does it introduce unnecessary nesting?
+Is the name descriptive and consistent?
+           
+If the answer isn't clear, rethink the placement before creating the file.                                                             
+
+Part 4 — Next.js App Router Architecture
+
+Objective: Design a scalable Next.js architecture that maximizes performance, keeps the codebase maintainable, and uses Server Components and Client Components intentionally—not randomly.
+
+For Restro Rasoi, the frontend is built with Next.js App Router, while the backend remains a separate Express.js API as defined in the project flow. The frontend communicates with the backend over REST and does not directly access MongoDB.
+
+4.1 Why Next.js?
+
+Many developers use Next.js simply because it's popular.
+
+We use it because it solves real problems.
+
+We need
+
+✓ Fast initial page load
+
+✓ Better SEO (future-proof)
+
+✓ Nested layouts
+
+✓ Code splitting
+
+✓ Image optimization
+
+✓ Server Components
+
+✓ Easy deployment on Vercel
+
+✓ Excellent App Router
+
+✓ Future scalability
+
+4.2 Why App Router instead of Pages Router?
+
+We will only use the App Router.
+
+Reasons:
+
+Better Layout System
+
+Instead of
+
+Every page recreates:
+
+Sidebar
+
+Navbar
+
+Wrapper
+
+Footer
+
+we define them once.
+
+Better Loading UI
+
+Each route gets its own
+
+loading.tsx
+
+without writing custom logic.
+
+Better Error Handling
+
+Each route gets
+
+error.tsx
+
+instead of wrapping everything in try/catch.
+
+Better Code Splitting
+
+Every folder automatically becomes a route boundary.
+
+Server Components
+
+Biggest advantage.
+
+Allows us to render data without sending unnecessary JavaScript.
+
+4.3 App Router Structure
+app/
+
+layout.tsx
+
+page.tsx
+
+loading.tsx
+
+error.tsx
+
+not-found.tsx
+
+login/
+
+dashboard/
+
+sales/
+
+customers/
+
+menu/
+
+settings/
+
+Notice
+
+Everything is route-based.
+
+Nothing business-related belongs here.
+
+4.4 Root Layout
+
+There should only be one root layout.
+
+Responsibilities:
+
+Import fonts
+Import global CSS
+Register Providers
+Background Layer
+Theme
+Toast Container
+Metadata
+HTML wrapper
+
+It should NOT
+
+fetch dashboard data
+render sidebar
+contain page logic
+
+Example hierarchy
+
+Root Layout
+
+↓
+
+Providers
+
+↓
+
+Background
+
+↓
+
+Children
+
+Simple.
+
+4.5 Route Layouts
+
+The login page should not share the dashboard layout.
+
+Instead
+
+app/
+
+(auth)/
+
+login/
+
+(app)/
+
+dashboard/
+
+sales/
+
+customers/
+
+Using Route Groups.
+
+Layout hierarchy becomes
+
+Root
+
+↓
+
+Auth Layout
+
+↓
+
+Login
+
+or
+
+Root
+
+↓
+
+App Layout
+
+↓
+
+Sidebar
+
+↓
+
+Navbar
+
+↓
+
+Dashboard
+
+No duplicated layouts.
+
+4.6 Route Groups
+
+We'll use Route Groups.
+
+app/
+
+(auth)
+
+(app)
+
+These folders don't appear in the URL.
+
+Benefits
+
+Login
+
+↓
+
+No sidebar
+
+Dashboard
+
+↓
+
+Sidebar
+
+Different layouts.
+
+Cleaner code.
+
+4.7 App Layout
+
+The application layout owns
+
+Sidebar
+
+Navbar
+
+Page Wrapper
+
+Mobile Navigation
+
+Background Layer
+
+Nothing else.
+
+It does NOT own
+
+Dashboard cards.
+
+Sales table.
+
+Customers.
+
+Those belong to pages.
+
+Hierarchy
+
+App Layout
+
+↓
+
+Sidebar
+
+↓
+
+Navbar
+
+↓
+
+Page
+4.8 Page Responsibility
+
+Each page should only
+
+compose components
+call feature hooks
+define metadata
+
+Example
+
+Sales Page
+
+↓
+
+Page Header
+
+↓
+
+Filters
+
+↓
+
+Sales Table
+
+↓
+
+Drawer
+
+Done.
+
+The page should not become 800 lines long.
+
+4.9 Server Components vs Client Components
+
+This is the most misunderstood topic.
+
+Rule
+
+Everything is a Server Component
+
+until proven otherwise.
+
+Not
+
+Everything is a Client Component.
+
+Server Components
+
+Advantages
+
+✓ Zero JS
+
+✓ Faster
+
+✓ Smaller bundle
+
+✓ Better performance
+
+Client Components
+
+Advantages
+
+✓ Interactivity
+
+✓ Forms
+
+✓ State
+
+✓ Events
+
+4.10 Decision Tree
+
+Ask
+
+Does this component need
+
+useState?
+useEffect?
+onClick?
+Browser API?
+React Hook Form?
+Framer Motion?
+
+YES
+
+↓
+
+Client Component
+
+NO
+
+↓
+
+Server Component
+
+Simple.
+
+4.11 What Should Be Server Components?
+
+Examples
+
+Page Heading
+
+Summary Card (static)
+
+Logo
+
+Footer
+
+Sidebar Links
+
+Customer Information
+
+Order Detail View
+
+Menu List
+
+Empty State
+
+Static Charts Container
+
+Everything that simply renders data.
+
+4.12 What Should Be Client Components?
+
+Examples
+
+Add Sale Drawer
+
+Sale Form
+
+Filters
+
+Search Box
+
+Dropdown
+
+Date Picker
+
+Charts
+
+Buttons
+
+Pagination
+
+Modals
+
+Toasts
+
+Autocomplete
+
+Anything interactive.
+
+4.13 Rendering Strategy
+
+This project should use a hybrid approach.
+
+Dashboard
+
+Initial summary
+
+↓
+
+Server Render
+
+Charts
+
+↓
+
+Client
+
+because charts require interaction.
+
+Sales Page
+
+Initial table
+
+↓
+
+Server
+
+Filters
+
+↓
+
+Client
+
+Drawer
+
+↓
+
+Client
+
+Customers
+
+Customer list
+
+↓
+
+Server
+
+Search
+
+↓
+
+Client
+
+Menu
+
+Table
+
+↓
+
+Server
+
+CRUD drawer
+
+↓
+
+Client
+
+This minimizes JavaScript while preserving responsiveness.
+
+4.14 Data Fetching Strategy
+
+Never fetch inside random components.
+
+Correct flow
+
+Page
+
+↓
+
+Feature Hook
+
+↓
+
+Service
+
+↓
+
+Axios
+
+↓
+
+Backend
+
+Not
+
+Button
+
+↓
+
+fetch()
+4.15 Streaming
+
+Next.js allows streaming.
+
+Instead of waiting for
+
+Dashboard
+
+↓
+
+Chart
+
+↓
+
+Cards
+
+↓
+
+Top Items
+
+Render independently.
+
+Example
+
+Page
+
+↓
+
+Summary Cards
+
+(render)
+
+↓
+
+Chart
+
+(render later)
+
+↓
+
+Top Items
+
+(render later)
+
+User sees content immediately.
+
+4.16 Loading UI
+
+Every route gets
+
+loading.tsx
+
+Examples
+
+Dashboard
+
+Skeleton Cards
+
+Sales
+
+Skeleton Table
+
+Customers
+
+Skeleton List
+
+Menu
+
+Skeleton Table
+
+Never spinner-only pages.
+
+Skeletons preserve layout stability.
+
+4.17 Error Handling
+
+Every route gets
+
+error.tsx
+
+Responsibilities
+
+Friendly message
+Retry Button
+Log Error
+
+Never show
+
+500
+
+undefined
+
+null
+
+to users.
+
+4.18 Not Found
+
+Implement
+
+not-found.tsx
+
+Examples
+
+Customer doesn't exist
+
+Sale deleted
+
+Menu item removed
+
+Show
+
+Customer not found
+
+Return to Customers
+4.19 Metadata
+
+Every page defines metadata.
+
+Example
+
+Dashboard
+
+Restro Rasoi | Dashboard
+
+Sales
+
+Restro Rasoi | Sales
+
+Customers
+
+Restro Rasoi | Customers
+
+Useful for
+
+Bookmarks
+
+Browser tabs
+
+Future SEO
+
+4.20 Dynamic Imports
+
+Not everything should load immediately.
+
+Lazy load
+
+Charts
+
+Large Tables
+
+Drawer
+
+Modal
+
+Settings
+
+Reports
+
+Example
+
+Dashboard loads
+
+↓
+
+Summary Cards
+
+↓
+
+Chart loads afterwards
+
+Better perceived performance.
+
+4.21 Parallel Routes
+
+Do we need them?
+
+No.
+
+Parallel Routes are useful for
+
+Gmail
+
+Slack
+
+Discord
+
+Not
+
+Restro Rasoi.
+
+Avoid unnecessary complexity.
+
+4.22 Intercepting Routes
+
+Useful when
+
+Click Sale
+
+↓
+
+Open Modal
+
+↓
+
+URL changes
+
+↓
+
+Refresh keeps modal
+
+Example
+
+sales/123
+
+opens as modal.
+
+Would it improve UX?
+
+Maybe.
+
+Is it necessary?
+
+No.
+
+Keep implementation simple.
+
+Use drawers.
+
+4.23 Route Protection
+
+Every route under
+
+(app)
+
+requires authentication.
+
+Unauthenticated
+
+↓
+
+Redirect
+
+/login
+
+Don't rely on hiding navigation links.
+
+Protection must happen before rendering.
+
+4.24 Navigation Rules
+
+Sidebar
+
+↓
+
+Primary Navigation
+
+Drawer
+
+↓
+
+Temporary Task
+
+Modal
+
+↓
+
+Confirmation
+
+Don't navigate users for simple CRUD.
+
+Opening a drawer is faster than leaving the page.
+
+This aligns with the project flow's recommendation that Sales and Expenditure creation can be handled through drawers or modals for rapid data entry.
+
+4.25 Route Naming
+
+Use nouns.
+
+Good
+
+/dashboard
+
+/sales
+
+/customers
+
+/menu
+
+/settings
+
+Bad
+
+/get-sales
+
+/showCustomers
+
+/addExpenseNow
+
+Routes represent resources.
+
+Not actions.
+
+4.26 URL Philosophy
+
+URLs should be clean.
+
+Good
+
+/customers/64ab...
+
+/sales/123
+
+Avoid
+
+/customer?id=123
+
+unless filtering.
+
+4.27 Scroll Behavior
+
+Each page remembers
+
+its own scroll.
+
+Changing pages
+
+↓
+
+starts at top.
+
+Drawer opens
+
+↓
+
+background scroll locks.
+
+Important for mobile.
+
+4.28 Mobile Navigation
+
+Desktop
+
+Sidebar
+
+↓
+
+Mobile
+
+Bottom Navigation
+
+Same routes.
+
+Different UI.
+
+Never create different navigation logic.
+
+4.29 Route Performance Checklist
+
+Every page should answer:
+
+✅ Can it be a Server Component?
+
+✅ Can JS be reduced?
+
+✅ Can this component be lazy loaded?
+
+✅ Is there unnecessary client state?
+
+✅ Can Suspense improve perceived loading?
+
+If yes,
+
+implement it.
+
+4.30 Architectural Rules (Non-Negotiable)
+Default to Server Components. Add "use client" only when interactivity requires it.
+Keep app/ focused on routing and layouts; business logic belongs in feature modules.
+Use nested layouts and route groups to eliminate duplicated UI.
+Prefer drawers and modals for CRUD workflows instead of full page navigations.
+Every route must provide loading.tsx, error.tsx, and not-found.tsx where appropriate.
+Lazy load heavy, non-critical UI.
+Protect authenticated routes before rendering.
+Keep URLs predictable, resource-oriented, and bookmark-friendly.
+
+Part 5 — Data Layer & API Architecture
+
+Objective: Build a frontend where every API request follows exactly one path. No random fetch(), no duplicate Axios instances, no inconsistent error handling, and no scattered business logic.
+
+The backend already defines a clean REST API (/sales, /customers, /menu, /dashboard, etc.). The frontend should consume these APIs through a structured data layer rather than calling endpoints directly from components.
+
+5.1 Philosophy
+
+The UI should never know how the backend works.
+
+A page should never care
+
+whether Axios is used
+what endpoint is called
+how authentication works
+how errors are formatted
+what headers are required
+
+The page should simply say
+
+"Give me today's sales."
+
+Nothing more.
+
+5.2 Data Flow
+
+Every request follows one path.
+
+Page
+
+↓
+
+Feature Hook
+
+↓
+
+Feature Service
+
+↓
+
+Axios Client
+
+↓
+
+Express Backend
+
+↓
+
+MongoDB
+
+Response
+
+↓
+
+Axios
+
+↓
+
+React Query
+
+↓
+
+Hook
+
+↓
+
+Component
+
+One flow.
+
+Always.
+
+5.3 Layer Responsibilities
+UI Layer
+
+Responsible for
+
+rendering
+interaction
+loading
+error state
+
+Never performs networking.
+
+Feature Hook
+
+Responsible for
+
+calling React Query
+caching
+mutations
+invalidation
+
+Never formats HTTP requests.
+
+Feature Service
+
+Responsible for
+
+endpoint URLs
+request payload
+response mapping
+
+Never renders UI.
+
+Axios Client
+
+Responsible for
+
+base URL
+headers
+authentication
+interceptors
+
+Only infrastructure.
+
+5.4 Folder Structure
+src/
+
+lib/
+
+axios.ts
+
+query-client.ts
+
+features/
+
+sales/
+
+services/
+
+sales.service.ts
+
+hooks/
+
+useSales.ts
+
+customers/
+
+services/
+
+customers.service.ts
+
+hooks/
+
+useCustomers.ts
+
+Every feature owns its own service.
+
+5.5 Axios Configuration
+
+There should be exactly one Axios instance.
+
+Never create
+
+axios.create()
+
+inside feature folders.
+
+Everything goes through
+
+lib/axios.ts
+
+Responsibilities
+
+Base URL
+Credentials
+Timeout
+Default headers
+Interceptors
+5.6 Base URL
+
+Never hardcode
+
+localhost
+
+Use environment variables.
+
+Example
+
+NEXT_PUBLIC_API_URL
+
+Development
+
+↓
+
+localhost
+
+Production
+
+↓
+
+Render
+
+Railway
+
+etc.
+
+Changing environments should require zero code changes.
+
+5.7 API Timeouts
+
+Never allow infinite requests.
+
+Recommended
+
+15 seconds
+
+After timeout
+
+↓
+
+Show
+
+Unable to reach server.
+
+Retry
+
+Never freeze the UI.
+
+5.8 Interceptors
+
+Axios interceptors should perform infrastructure work only.
+
+Request interceptor
+
+attach credentials
+attach auth headers (if required)
+attach correlation ID (future)
+
+Response interceptor
+
+normalize errors
+refresh auth (future)
+redirect on unauthorized
+
+Never place business logic here.
+
+5.9 Authentication
+
+Frontend should use
+
+HttpOnly Cookies
+
+Not
+
+localStorage JWT
+
+Reasons
+
+safer
+protected against XSS
+automatic with requests
+
+Axios
+
+withCredentials = true
+
+Authentication becomes invisible to components.
+
+5.10 Service Layer
+
+Every feature gets its own service.
+
+Example
+
+sales.service.ts
+
+Responsibilities
+
+GET Sales
+GET Sale
+POST Sale
+PUT Sale
+DELETE Sale
+
+Nothing else.
+
+Don't mix
+
+Customers
+
+Dashboard
+
+Menu
+
+inside Sales Service.
+
+5.11 Never Call Axios Inside Components
+
+Bad
+
+const data = await axios.get(...)
+
+inside
+
+SalesTable
+
+Good
+
+SalesTable
+
+↓
+
+useSales()
+
+↓
+
+sales.service.ts
+
+↓
+
+axios
+
+UI never knows Axios exists.
+
+5.12 Data Transfer Objects (DTOs)
+
+Never expose raw backend responses directly to components.
+
+Instead
+
+Backend
+
+↓
+
+DTO
+
+↓
+
+Frontend
+
+↓
+
+Mapped Type
+
+Example
+
+Backend
+
+{
+ "_id":"...",
+ "customerName":"John",
+ "grandTotal":650
+}
+
+Mapped
+
+Sale
+
+Component only receives
+
+what it needs.
+
+This keeps backend changes isolated.
+
+5.13 Response Mapping
+
+Always transform data
+
+inside services.
+
+Never inside UI.
+
+Bad
+
+sale.createdAt.slice(0,10)
+
+Good
+
+formatSale()
+
+inside service or utility.
+
+Components receive clean data.
+
+5.14 Query Keys
+
+Every query must have a stable key.
+
+Example
+
+dashboard
+
+dashboard-summary
+
+dashboard-monthly
+
+sales
+
+sale
+
+customers
+
+customer
+
+menu
+
+menu-items
+
+Never
+
+"data"
+
+"list"
+
+"table"
+
+Poor query keys make cache invalidation difficult.
+
+5.15 React Query Architecture
+
+Every feature hook wraps React Query.
+
+Example
+
+useSales()
+
+↓
+
+useQuery()
+
+↓
+
+sales.service()
+
+Page
+
+↓
+
+Hook
+
+↓
+
+Done.
+
+Pages never call
+
+useQuery()
+
+directly.
+
+5.16 Caching Strategy
+
+Not every page needs the same cache duration.
+
+Example guidelines
+
+Dashboard
+
+↓
+
+30–60 seconds
+
+Sales
+
+↓
+
+Fresh after mutations
+
+Menu
+
+↓
+
+Long cache (changes rarely)
+
+Customers
+
+↓
+
+Moderate cache
+
+The goal is to reduce unnecessary network requests while keeping business data reasonably fresh.
+
+5.17 Stale Time Philosophy
+
+Ask
+
+How often does this data change?
+
+Frequently
+
+↓
+
+Small stale time
+
+Rarely
+
+↓
+
+Long stale time
+
+Don't blindly use
+
+0
+
+for every query.
+
+5.18 Mutations
+
+Mutations include
+
+Create
+
+Update
+
+Delete
+
+Payment Status
+
+Menu Update
+
+Each mutation follows
+
+Submit
+
+↓
+
+Loading
+
+↓
+
+API
+
+↓
+
+Success
+
+↓
+
+Invalidate Cache
+
+↓
+
+UI Refresh
+
+No manual refresh button.
+
+5.19 Optimistic Updates
+
+Should we use them?
+
+Sales
+
+❌ No
+
+Reason
+
+Financial records should only appear after backend confirmation.
+
+Menu
+
+✅ Yes
+
+Small edits are acceptable.
+
+Customer Address
+
+✅ Yes
+
+Dashboard Totals
+
+❌ Never.
+
+Wait for backend.
+
+5.20 Invalidation Strategy
+
+After
+
+New Sale
+
+Invalidate
+
+sales
+
+dashboard
+
+customers
+
+Because
+
+All three changed.
+
+After
+
+Menu Update
+
+Invalidate
+
+menu
+
+only.
+
+Think carefully before invalidating everything.
+
+5.21 Pagination
+
+Never download
+
+10,000 sales.
+
+Backend already supports pagination. The frontend should request only the current page and pass filters, sorting, and pagination through query parameters.
+
+Flow
+
+Page 1
+
+↓
+
+20 rows
+
+↓
+
+Next Page
+
+↓
+
+20 rows
+5.22 Filtering
+
+Filtering always happens
+
+Server Side.
+
+Frontend
+
+↓
+
+Query Parameters
+
+↓
+
+Backend
+
+↓
+
+Mongo Query
+
+Never filter
+
+5000 sales
+
+inside React.
+
+5.23 Sorting
+
+Also server-side.
+
+Reason
+
+Scales infinitely.
+
+Frontend simply says
+
+sort=date
+
+desc
+5.24 Search
+
+Debounce
+
+300ms
+
+User types
+
+↓
+
+Wait
+
+↓
+
+API
+
+Avoid sending one request per keystroke.
+
+5.25 Error Handling
+
+Never
+
+catch(err){
+console.log(err)
+}
+
+Every error goes through
+
+one formatter.
+
+Possible UI
+
+Network Error
+
+Server Error
+
+Validation Error
+
+Unauthorized
+
+Forbidden
+
+Unknown
+
+Components receive friendly messages.
+
+5.26 Retry Policy
+
+Automatic retry
+
+Network failure
+
+↓
+
+Yes (limited retries)
+
+Validation Error
+
+↓
+
+No
+
+Unauthorized
+
+↓
+
+No
+
+404
+
+↓
+
+No
+
+Retry only when it makes sense.
+
+5.27 Loading Strategy
+
+Every hook returns
+
+Loading
+
+↓
+
+Error
+
+↓
+
+Success
+
+Components don't invent loading logic.
+
+5.28 Background Refresh
+
+Dashboard
+
+↓
+
+Refresh automatically
+
+Sales Table
+
+↓
+
+Manual user action or cache invalidation
+
+No polling for everything.
+
+5.29 Offline Handling
+
+Future enhancement.
+
+If offline
+
+Show
+
+You're offline.
+
+Changes cannot be synced.
+
+Do not pretend the save succeeded.
+
+5.30 API Versioning
+
+Prepare URLs for versioning.
+
+Example
+
+/api/v1/sales
+
+Even if only v1 exists today, this avoids painful migrations later.
+
+5.31 Security Rules
+
+Never trust
+
+totals
+profit
+payment status
+calculated values
+
+Everything must be confirmed by backend responses.
+
+Also:
+
+Never expose stack traces.
+Never display raw server error messages.
+Sanitize any user-generated content before rendering if rich text is ever introduced.
+Keep secrets and API URLs out of the codebase by using environment variables.
+5.32 Data Layer Checklist
+
+Before creating a new API interaction, ask:
+
+Does a service already exist for this feature?
+Can an existing query key be reused?
+Is this a query or a mutation?
+Should the result be cached?
+Which queries need invalidation after success?
+Does this belong in a feature hook instead of a page?
+Is the component free from networking code?
+
+If the answer to any of these is no, refactor before adding new code.  
+
+Part 6 — State Management Architecture
+
+Objective: Create a predictable, scalable state management strategy where every piece of data has a clear owner. One of the biggest reasons React applications become difficult to maintain is not the number of components—it's unclear ownership of state. This guide defines exactly where every type of state belongs and, equally importantly, where it does not belong.
+
+6.1 Philosophy
+
+Before writing any state, ask one question:
+
+Who owns this data?
+
+Every state in the application must have exactly one owner.
+
+Never duplicate ownership.
+
+Example
+
+Bad
+
+Dashboard
+
+↓
+
+stores sales
+
+↓
+
+Sales Page
+
+↓
+
+stores sales
+
+↓
+
+Sidebar
+
+↓
+
+stores sales
+
+Now three places must stay synchronized.
+
+Good
+
+Backend
+
+↓
+
+React Query Cache
+
+↓
+
+Every Component Reads
+
+Only one source of truth.
+
+6.2 Types of State
+
+Every state belongs to one of these categories.
+
+Server State
+
+↓
+
+UI State
+
+↓
+
+Form State
+
+↓
+
+URL State
+
+↓
+
+Derived State
+
+↓
+
+Persistent State
+
+Understanding this classification prevents almost every state management problem.
+
+6.3 Server State
+
+Examples
+
+Sales
+Customers
+Dashboard Summary
+Menu Items
+Expenditure
+Reports
+
+Characteristics
+
+lives on backend
+shared across pages
+asynchronous
+cached
+invalidated
+refetched
+
+Owner
+
+React Query
+
+Never copy server state into useState.
+
+Bad
+
+const { data } = useSales()
+
+const [sales, setSales] = useState(data)
+
+Now there are two copies.
+
+Correct
+
+Backend
+
+↓
+
+React Query
+
+↓
+
+Component
+6.4 UI State
+
+Examples
+
+Sidebar Open
+Drawer Open
+Modal Open
+Active Tab
+Selected Row
+Hover State
+Tooltip
+Accordion
+
+Owner
+
+Component
+
+Use
+
+useState
+
+These states never leave the UI.
+
+6.5 Form State
+
+Examples
+
+Customer Name
+Phone Number
+Quantity
+Notes
+Expense Amount
+
+Owner
+
+React Hook Form
+
+Never
+
+const [name, setName]
+const [phone, setPhone]
+const [address, setAddress]
+
+Forms become impossible to maintain.
+
+6.6 URL State
+
+Examples
+
+?page=2
+
+?sort=date
+
+?status=paid
+
+?search=rahul
+
+Owner
+
+URL
+
+Advantages
+
+Shareable links
+Refresh safe
+Browser history
+Deep linking
+
+Never store filters only in React state.
+
+6.7 Derived State
+
+Derived state means
+
+Computed
+
+Not stored.
+
+Example
+
+Grand Total
+
+↓
+
+Items
+
++
+
+Delivery Charge
+
+Never
+
+const [grandTotal]
+
+Compute it.
+
+Another example
+
+Paid Orders Count
+
+↓
+
+sales.filter()
+
+Don't store.
+
+Derive.
+
+6.8 Persistent State
+
+Examples
+
+Theme
+
+Language
+
+Sidebar Collapse
+
+Remember Me
+
+Owner
+
+Browser Storage
+
+Never
+
+Sales
+
+Customers
+
+Dashboard
+
+These belong to backend.
+
+6.9 State Ownership
+
+One state
+
+↓
+
+One owner.
+
+Example
+
+Drawer
+
+Sales Page
+
+↓
+
+Sale Drawer
+
+Not
+
+Navbar
+
+↓
+
+Sidebar
+
+↓
+
+Drawer
+
+↓
+
+Button
+
+State should stay as close as possible to where it's used.
+
+6.10 Local vs Global
+
+Use Local State when
+
+one component needs it
+temporary
+UI only
+
+Use Global State only when
+
+many unrelated components require the same information.
+
+Examples
+
+Authentication
+
+Theme
+
+Current User
+
+Everything else
+
+Local.
+
+6.11 Why We Are NOT Using Redux
+
+Redux is excellent.
+
+But it solves problems we don't have.
+
+Restro Rasoi is
+
+single business
+small team
+CRUD heavy
+backend-driven
+
+React Query already manages server state.
+
+React Hook Form manages form state.
+
+useState manages UI state.
+
+Redux would duplicate responsibilities.
+
+Therefore
+
+No Redux.
+
+6.12 Why We Are NOT Using Zustand
+
+Zustand is lightweight.
+
+Still unnecessary.
+
+Current application doesn't have
+
+complex cross-feature UI
+drag/drop
+collaborative editing
+offline synchronization
+
+Avoid introducing another dependency without a real requirement.
+
+6.13 React Context
+
+Context is not a state management library.
+
+It is a dependency injection mechanism.
+
+Use Context only for
+
+Theme
+
+Authentication
+
+User Preferences
+
+Feature Flags (future)
+
+Never
+
+Sales
+
+Customers
+
+Dashboard
+
+Menu
+
+Those belong in React Query.
+
+6.14 State Decision Tree
+
+Whenever you create state, ask:
+
+Does backend own it?
+
+↓
+
+YES
+
+↓
+
+React Query
+
+↓
+
+NO
+
+↓
+
+Is it a form?
+
+↓
+
+YES
+
+↓
+
+React Hook Form
+
+↓
+
+NO
+
+↓
+
+Does multiple unrelated components need it?
+
+↓
+
+YES
+
+↓
+
+Context
+
+↓
+
+NO
+
+↓
+
+useState
+
+This decision tree should guide every implementation.
+
+6.15 useState Guidelines
+
+Perfect for
+
+Drawer
+
+Modal
+
+Selected Row
+
+Hovered Card
+
+Tab
+
+Toggle
+
+Dropdown
+
+Search Input (before debounce)
+
+Avoid storing
+
+arrays from backend
+
+inside useState.
+
+6.16 useReducer
+
+Only use
+
+when
+
+State transitions become complicated.
+
+Example
+
+Sale Builder
+
+Items
+
+↓
+
+Quantity
+
+↓
+
+Discount
+
+↓
+
+Delivery
+
+↓
+
+Coupon
+
+↓
+
+Totals
+
+Many actions.
+
+Reducer makes sense.
+
+Simple modal
+
+↓
+
+No.
+
+6.17 State Lifting
+
+Lift state
+
+only
+
+when two siblings require it.
+
+Bad
+
+App
+
+↓
+
+Sales
+
+↓
+
+Drawer
+
+↓
+
+Input
+
+Everything lifted.
+
+Good
+
+Sales
+
+↓
+
+Drawer
+
+↓
+
+Input
+
+Keep state near usage.
+
+6.18 Prop Drilling
+
+Passing props
+
+1–2 levels
+
+Perfectly acceptable.
+
+Passing
+
+App
+
+↓
+
+Layout
+
+↓
+
+Sidebar
+
+↓
+
+Dashboard
+
+↓
+
+Card
+
+↓
+
+Button
+
+No.
+
+At that point
+
+Extract
+
+Context
+
+or
+
+Custom Hook
+
+depending on ownership.
+
+6.19 Custom Hook Architecture
+
+Every feature exposes hooks.
+
+Example
+
+useSales()
+
+useSale()
+
+useCreateSale()
+
+useUpdateSale()
+
+useDeleteSale()
+
+Each hook
+
+owns
+
+exactly one responsibility.
+
+6.20 UI Hook Examples
+
+Global hooks
+
+useDebounce()
+
+useMediaQuery()
+
+useClickOutside()
+
+useKeyboardShortcut()
+
+useMounted()
+
+usePrevious()
+
+Feature hooks stay inside feature folders.
+
+6.21 Search State
+
+Example
+
+Sales Search
+
+Input
+
+↓
+
+Local State
+
+↓
+
+Debounce
+
+↓
+
+React Query
+
+↓
+
+Backend
+
+Don't query on every keystroke.
+
+6.22 Drawer State
+
+Sales Drawer
+
+Owner
+
+Sales Page
+
+Not
+
+Sidebar
+
+Not
+
+App Layout
+
+When leaving Sales page
+
+Drawer disappears automatically.
+
+6.23 Filter State
+
+Filters belong to
+
+URL.
+
+Example
+
+/sales
+
+?status=paid
+
+&month=july
+
+Benefits
+
+Refresh safe
+
+Shareable
+
+Back button works.
+
+6.24 Selected Row
+
+Never
+
+Global.
+
+Owner
+
+Table.
+
+Once page changes
+
+Forget selection.
+
+6.25 Optimistic UI State
+
+Only optimistic
+
+when
+
+failure is easily reversible.
+
+Good
+
+Menu Item Rename
+
+Customer Address
+
+Bad
+
+Sale Creation
+
+Expense
+
+Dashboard Profit
+
+Financial records require backend confirmation.
+
+6.26 Loading State
+
+Never create
+
+const [loading]
+
+for queries.
+
+React Query already provides
+
+isLoading
+
+isFetching
+
+isPending
+
+isError
+
+Reuse them.
+
+Only use custom loading state for purely local interactions, such as disabling a button during a short client-side animation.
+
+6.27 Error State
+
+Similarly
+
+Don't create
+
+const [error]
+
+for API requests.
+
+React Query already owns that.
+
+Only local validation errors belong to React Hook Form.
+
+6.28 Synchronization Rules
+
+Never synchronize
+
+React Query
+
+↓
+
+useState
+
+using
+
+useEffect()
+
+Example
+
+useEffect(() => {
+setSales(data)
+}, [data])
+
+This is usually an anti-pattern.
+
+Read directly from React Query.
+
+6.29 Performance Rules
+
+Avoid state that causes unnecessary renders.
+
+Example
+
+Don't keep
+
+Current Time
+
+inside a top-level layout if only one dashboard widget needs it.
+
+Move state closer to where it's consumed.
+
+Smaller state scope = fewer re-renders.
+
+6.30 State Naming
+
+Good
+
+isDrawerOpen
+
+selectedCustomer
+
+activeFilter
+
+searchQuery
+
+currentPage
+
+Bad
+
+data
+
+value
+
+temp
+
+state
+
+info
+
+Names should describe purpose, not implementation.
+
+6.31 Anti-Patterns (Strictly Avoid)
+
+❌ Copying React Query data into local state.
+
+❌ Global state for component-specific UI.
+
+❌ Using Context for server data.
+
+❌ Multiple sources of truth.
+
+❌ Synchronizing state with useEffect unnecessarily.
+
+❌ Deep prop drilling when composition or custom hooks suffice.
+
+❌ Storing values that can be derived.
+
+❌ Introducing Redux/Zustand without a justified need.
+
+6.32 State Architecture Summary
+State Type	Owner	Tool
+Sales, Customers, Dashboard	Backend	React Query
+Forms	Form Component	React Hook Form
+Drawer, Modal, Tabs	Component	useState
+Theme, Auth	App	Context
+Filters, Pagination	URL	Next.js Router/Search Params
+Computed Totals	Derived	Compute on demand
+User Preferences	Browser	Local Storage
+6.33 Non-Negotiable Rules
+Every state has one owner.
+Never duplicate server state.
+Use React Query for backend data.
+Use React Hook Form for forms.
+Use Context sparingly.
+Keep state as local as possible.
+Derive values instead of storing them.
+Avoid state synchronization with useEffect unless absolutely necessary.
+
+Part 7 — Component Architecture & Reusable Component System
+
+Objective: Build a component system that remains maintainable for years. Every component should be reusable, predictable, easy to test, and consistent with the Liquid Glass design language defined in the Design Specification.
+
+7.1 Component Philosophy
+
+Most frontend projects become messy because developers build pages first and components later.
+
+We're going to do the opposite.
+
+We first build a design system.
+
+Then reusable components.
+
+Then feature components.
+
+Then pages.
+
+Everything should be composed.
+
+Never copied.
+
+7.2 Component Hierarchy
+
+The entire application follows a four-layer hierarchy.
+
+Primitive Components
+
+↓
+
+Composite Components
+
+↓
+
+Feature Components
+
+↓
+
+Pages
+
+Every component belongs to exactly one layer.
+
+7.3 Primitive Components
+
+These are the smallest building blocks.
+
+They have
+
+no business logic
+no API calls
+no feature knowledge
+
+Examples
+
+Button
+
+Input
+
+Card
+
+Badge
+
+Avatar
+
+Checkbox
+
+Radio
+
+Switch
+
+Select
+
+Textarea
+
+Tooltip
+
+Popover
+
+Drawer
+
+Dialog
+
+Separator
+
+Skeleton
+
+Spinner
+
+These should be built once and reused everywhere.
+
+7.4 Composite Components
+
+Composite components combine multiple primitives.
+
+Example
+
+Search Input
+
+↓
+
+Input
+
++
+
+Search Icon
+
++
+
+Clear Button
+
+Another
+
+Summary Card
+
+↓
+
+Card
+
++
+
+Icon
+
++
+
+Title
+
++
+
+Value
+
++
+
+Badge
+
+Composite components still know nothing about Sales or Customers.
+
+7.5 Feature Components
+
+Feature components belong to one business module.
+
+Example
+
+Sales
+
+SaleForm
+
+SaleDrawer
+
+SalesFilters
+
+SalesTable
+
+ItemPicker
+
+Customer
+
+CustomerProfile
+
+CustomerTimeline
+
+CustomerOrders
+
+CustomerStats
+
+Feature components can use
+
+hooks
+services
+React Query
+
+Primitive components cannot.
+
+7.6 Pages
+
+Pages should contain almost no logic.
+
+Example
+
+Dashboard
+
+↓
+
+Summary Cards
+
+↓
+
+Chart
+
+↓
+
+Top Selling
+
+↓
+
+Recent Sales
+
+The page only composes.
+
+7.7 Component Responsibility
+
+Every component should answer one question.
+
+"What problem do I solve?"
+
+Good
+
+StatusBadge
+
+Displays status.
+
+Good
+
+DateRangePicker
+
+Picks dates.
+
+Bad
+
+DashboardWidget
+fetches data
+calculates totals
+renders chart
+handles filters
+updates customers
+
+One component.
+
+Four responsibilities.
+
+7.8 Component Size Rule
+
+Ideal
+
+50–150 lines
+
+Acceptable
+
+200–250
+
+Beyond
+
+300+
+
+Split it.
+
+Large files become difficult to review and maintain.
+
+7.9 Component Folder Structure
+
+Every complex component owns itself.
+
+Example
+
+DataTable/
+
+DataTable.tsx
+
+DataTableHeader.tsx
+
+DataTableBody.tsx
+
+DataTablePagination.tsx
+
+index.ts
+
+Instead of
+
+DataTable.tsx
+
+800 lines
+7.10 shadcn/ui Strategy
+
+We will use shadcn/ui as the foundation.
+
+Why?
+
+Built on Radix UI
+Accessible by default
+Tailwind-based
+Easy to customize
+No runtime dependency
+Fits our design system
+
+But—
+
+We will not blindly install every component.
+
+Install only what the project actually needs.
+
+7.11 Components We Will Install
+
+Initial setup
+
+Button
+
+Input
+
+Textarea
+
+Card
+
+Dialog
+
+Drawer
+
+Popover
+
+Dropdown Menu
+
+Tooltip
+
+Avatar
+
+Badge
+
+Tabs
+
+Select
+
+Command
+
+Calendar
+
+Separator
+
+Scroll Area
+
+Skeleton
+
+Avoid installing dozens of unused components.
+
+7.12 Component API Design
+
+Every component should have a clean API.
+
+Good
+
+<Button
+
+variant="primary"
+
+size="md"
+
+loading
+
+>
+
+Save
+
+</Button>
+
+Bad
+
+<Button
+
+red
+
+large
+
+rounded
+
+shadow
+
+glass
+
+loading
+
+animate
+
+custom
+
+>
+
+Too many unrelated props.
+
+7.13 Variants
+
+Instead of creating
+
+PrimaryButton
+
+DangerButton
+
+SecondaryButton
+
+GlassButton
+
+Create
+
+Button
+
+with variants.
+
+Example
+
+primary
+
+secondary
+
+danger
+
+ghost
+
+outline
+
+One component.
+
+Multiple appearances.
+
+7.14 Size System
+
+Every reusable component supports
+
+sm
+
+md
+
+lg
+
+Nothing else.
+
+Avoid
+
+mediumSmall
+
+extraLarge
+
+custom
+7.15 Controlled vs Uncontrolled
+
+Inputs should support both.
+
+Example
+
+React Hook Form
+
+↓
+
+Controlled
+
+Simple Search Box
+
+↓
+
+Uncontrolled
+
+Build components flexible enough for both use cases.
+
+7.16 Composition over Props
+
+Instead of
+
+<Card
+
+title
+
+subtitle
+
+button
+
+footer
+
+icon
+
+badge
+
+chart
+
+/>
+
+Prefer
+
+<Card>
+
+<CardHeader/>
+
+<CardContent/>
+
+<CardFooter/>
+
+</Card>
+
+Composition scales much better.
+
+7.17 DataTable Architecture
+
+The DataTable is one of the most important reusable components because Sales, Expenditure, Customers, and Menu all present tabular data. The project flow explicitly encourages a reusable table component.
+
+Architecture
+
+DataTable
+
+│
+
+├── Header
+
+├── Toolbar
+
+├── Filters
+
+├── Table
+
+├── Pagination
+
+├── Empty State
+
+Never create
+
+SalesTable
+
+CustomerTable
+
+ExpenseTable
+
+from scratch.
+
+Reuse DataTable.
+
+7.18 FilterBar
+
+Another reusable component.
+
+Supports
+
+Search
+
+Dropdown
+
+Date Range
+
+Quick Filters
+
+Reset
+
+Export (future)
+
+Sales
+
+↓
+
+uses it
+
+Customers
+
+↓
+
+uses it
+
+Expenses
+
+↓
+
+uses it
+
+7.19 Drawer System
+
+One drawer.
+
+Reusable.
+
+Used by
+
+Add Sale
+
+Edit Sale
+
+Add Expense
+
+Edit Expense
+
+Add Menu
+
+Edit Menu
+
+Only content changes.
+
+7.20 Dialog System
+
+Use dialogs only for
+
+Delete
+
+Confirmation
+
+Logout
+
+Discard Changes
+
+Never entire forms.
+
+Forms belong inside drawers.
+
+7.21 Card System
+
+Every card inherits
+
+Glass Surface
+
+↓
+
+Header
+
+↓
+
+Content
+
+↓
+
+Footer
+
+Examples
+
+Summary Card
+
+Customer Card
+
+Menu Card
+
+Report Card
+
+All use the same base.
+
+7.22 Form Components
+
+Instead of
+
+Input
+
+↓
+
+Label
+
+↓
+
+Error
+
+every time,
+
+Create
+
+FormField
+
+Architecture
+
+Label
+
+↓
+
+Input
+
+↓
+
+Helper
+
+↓
+
+Error
+
+Reusable everywhere.
+
+7.23 Empty States
+
+One reusable component.
+
+Examples
+
+No Sales
+
+No Customers
+
+No Expenses
+
+No Menu Items
+
+Only
+
+icon
+
+title
+
+description
+
+CTA
+
+change.
+
+7.24 Error State Component
+
+Reusable.
+
+Error Icon
+
+↓
+
+Title
+
+↓
+
+Description
+
+↓
+
+Retry Button
+
+Every page uses it.
+
+7.25 Skeleton Components
+
+Don't create one generic rectangle.
+
+Create
+
+Card Skeleton
+
+Table Skeleton
+
+Form Skeleton
+
+Dashboard Skeleton
+
+Chart Skeleton
+
+Matching the final layout reduces layout shift.
+
+7.26 Loading Button
+
+Button
+
+↓
+
+Spinner
+
+↓
+
+Disabled
+
+One reusable implementation.
+
+Never manually disable buttons in every form.
+
+7.27 Search Components
+
+Reusable SearchBox.
+
+Features
+
+debounce
+clear button
+keyboard shortcut
+loading indicator
+
+Shared across all searchable pages.
+
+7.28 Pagination Component
+
+Supports
+
+page number
+previous
+next
+page size
+
+Backend pagination plugs directly into it.
+
+No feature-specific pagination components.
+
+7.29 StatusBadge
+
+One component.
+
+Variants
+
+Paid
+
+Unpaid
+
+Active
+
+Inactive
+
+Success
+
+Warning
+
+Danger
+
+Avoid multiple badge implementations.
+
+7.30 Icons
+
+Wrap Lucide icons in a reusable Icon component only if you need consistent sizing or theming across the app. Otherwise, use Lucide icons directly with standardized size tokens.
+
+Never mix icon libraries.
+
+7.31 Animations
+
+Every reusable component owns its animation.
+
+Example
+
+Drawer
+
+↓
+
+slide
+
+Modal
+
+↓
+
+fade
+
+Button
+
+↓
+
+press
+
+Tooltip
+
+↓
+
+scale
+
+Don't repeat animation logic.
+
+7.32 Accessibility Rules
+
+Every reusable component must support
+
+✓ Keyboard
+
+✓ Screen Reader
+
+✓ Focus
+
+✓ Disabled
+
+✓ Error
+
+✓ Loading
+
+Accessibility isn't added later.
+
+It's built first.
+
+7.33 Testing Strategy
+
+Reusable components should be easy to test because they don't depend on backend APIs.
+
+Focus tests on:
+
+rendering
+interactions
+accessibility
+edge cases
+
+Avoid embedding networking logic inside them.
+
+7.34 Component Naming
+
+Good
+
+SaleDrawer
+
+SummaryCard
+
+FilterBar
+
+StatusBadge
+
+CustomerTimeline
+
+Bad
+
+NewCard
+
+Widget
+
+Panel2
+
+Component
+
+FinalTable
+
+Names should describe purpose.
+
+7.35 Reuse Checklist
+
+Before creating a new component, ask:
+
+Does a similar component already exist?
+Can I extend an existing component with variants?
+Is this business-specific or generic?
+Does it belong in components/ or inside a feature?
+Will another page likely need this later?
+
+If the answer to (1) or (2) is yes, don't create a new component.
+
+7.36 Component Lifecycle
+
+Every reusable component should support the complete lifecycle:
+
+Loading
+
+↓
+
+Empty
+
+↓
+
+Success
+
+↓
+
+Error
+
+↓
+
+Disabled (if applicable)
+
+Don't design only for the happy path.
+
+7.37 Documentation
+
+Every shared component should have a short README or JSDoc describing:
+
+purpose
+supported props
+variants
+usage example
+accessibility notes
+
+This helps future contributors understand the component without reading its implementation.
+
+7.38 Component Architecture Summary
+Layer	Responsibility	Examples
+Primitive	Basic UI building blocks	Button, Input, Card
+Composite	Combine primitives	SearchBox, SummaryCard
+Feature	Business-specific UI	SaleForm, CustomerTimeline
+Page	Compose features	Dashboard, Sales, Customers
+7.39 Non-Negotiable Rules
+Components should have a single responsibility.
+Prefer composition over inheritance and prop explosion.
+Install only the shadcn/ui components you actually use.
+Reuse before creating new components.
+Keep components small and focused.
+Feature components never belong in components/ui.
+Accessibility is required, not optional.
+Every shared component must have a stable, predictable API.
+
+Part 8 — Forms & Validation Architecture
+
+Objective: Design forms that are fast, reliable, scalable, and easy to maintain. Since the core of Restro Rasoi revolves around recording Sales, Expenditures, Customers, and Menu Items, the form architecture directly impacts the usability of the application. The project flow emphasizes rapid data entry with auto-calculated values and minimal manual typing, which this architecture is designed to support.
+
+8.1 Philosophy
+
+Forms are the most important part of this application.
+
+Users will spend almost all of their time inside forms.
+
+Therefore every form must be
+
+Fast
+Predictable
+Keyboard Friendly
+Mobile Friendly
+Self Validating
+Easy to extend
+
+The user should never feel like they're filling a government form.
+
+8.2 Form Architecture
+
+Every form follows exactly one architecture.
+
+UI
+
+↓
+
+React Hook Form
+
+↓
+
+Zod Validation
+
+↓
+
+Mutation Hook
+
+↓
+
+Feature Service
+
+↓
+
+Backend
+
+Nothing skips a layer.
+
+8.3 Why React Hook Form?
+
+Reasons
+
+✓ Extremely performant
+
+✓ Minimal re-renders
+
+✓ Built for large forms
+
+✓ Excellent TypeScript support
+
+✓ Integrates with Zod
+
+✓ Works beautifully with shadcn/ui
+
+Avoid writing forms using
+
+useState()
+
+useState()
+
+useState()
+
+useState()
+
+...
+
+for every field.
+
+8.4 Why Zod?
+
+Validation should exist in one place.
+
+Not
+
+if(name==="")
+
+if(phone.length<10)
+
+if(price<0)
+
+...
+
+inside components.
+
+Instead
+
+sale.schema.ts
+
+becomes
+
+the single source of truth.
+
+8.5 Folder Structure
+
+Each feature owns its own validation.
+
+Example
+
+features/
+
+sales/
+
+schemas/
+
+sale.schema.ts
+
+expenditure/
+
+schemas/
+
+expense.schema.ts
+
+customers/
+
+schemas/
+
+customer.schema.ts
+
+menu/
+
+schemas/
+
+menu.schema.ts
+
+Never create
+
+schemas/
+
+everything.ts
+8.6 Form Components
+
+Every form consists of reusable building blocks.
+
+Form
+
+↓
+
+FormSection
+
+↓
+
+FormField
+
+↓
+
+Input
+
+Instead of
+
+<label>
+
+<input>
+
+<p>Error</p>
+
+repeated everywhere.
+
+8.7 Form Layout
+
+Every page follows the same layout.
+
+Page Title
+
+↓
+
+Description
+
+↓
+
+Form Sections
+
+↓
+
+Primary Action
+
+↓
+
+Secondary Action
+
+Never mix buttons in random places.
+
+8.8 Form Sections
+
+Large forms should be divided.
+
+Example
+
+Add Sale
+
+Customer
+
+↓
+
+Items
+
+↓
+
+Payment
+
+↓
+
+Notes
+
+Not
+
+40 fields in one column.
+
+8.9 Sale Form Architecture
+
+The Sales form is the most complex workflow in the application and should mirror the user flow described in the project document.
+
+Customer
+
+↓
+
+Item Picker
+
+↓
+
+Order Summary
+
+↓
+
+Payment
+
+↓
+
+Notes
+
+↓
+
+Save
+
+This sequence matches how users naturally think.
+
+8.10 Customer Section
+
+Fields
+
+Customer Name
+
+Phone
+
+Address
+
+Features
+
+✓ Autocomplete
+
+✓ Existing customer detection
+
+✓ Auto-fill
+
+✓ New customer creation
+
+No manual searching.
+
+8.11 Item Picker
+
+Probably the most important reusable component.
+
+Architecture
+
+Search
+
+↓
+
+Menu Item
+
+↓
+
+Quantity
+
+↓
+
+Line Total
+
+↓
+
+Remove
+
+Supports
+
+✓ Search
+
+✓ Keyboard
+
+✓ Mouse
+
+✓ Mobile
+
+8.12 Field Array
+
+Never hardcode
+
+Item1
+
+Item2
+
+Item3
+
+Use
+
+React Hook Form
+
+Field Arrays
+
+Items[]
+
+↓
+
+Append
+
+↓
+
+Remove
+
+↓
+
+Update
+
+Infinite scalability.
+
+8.13 Dynamic Rows
+
+Every click
+
++ Add Item
+
+adds
+
+Menu Item
+
+Qty
+
+Price
+
+Total
+
+No duplicated code.
+
+8.14 Live Calculations
+
+The frontend should provide live previews for usability, but the backend remains the source of truth for final calculations, exactly as specified in the API design.
+
+Preview
+
+Subtotal
+
+↓
+
+Delivery
+
+↓
+
+Grand Total
+
+updates instantly.
+
+Never wait
+
+for backend.
+
+8.15 Never Trust Frontend Totals
+
+Important rule.
+
+Frontend
+
+↓
+
+Preview Only
+
+Backend
+
+↓
+
+Real Total
+
+If backend
+
+returns
+
+₹870
+
+Frontend displays
+
+₹870
+
+even if preview
+
+was
+
+₹872
+8.16 Form Validation
+
+Validation levels
+
+Required
+
+↓
+
+Format
+
+↓
+
+Business Rules
+
+↓
+
+Backend
+
+Example
+
+Phone
+
+Required
+
+↓
+
+10 digits
+
+↓
+
+Backend uniqueness
+
+8.17 Validation Timing
+
+Validate
+
+Immediately
+
+for
+
+Required
+Format
+
+Validate
+
+On Submit
+
+for
+
+business logic.
+
+Avoid
+
+showing
+
+20 errors
+
+before user starts typing.
+
+8.18 Error Messages
+
+Bad
+
+Invalid Value
+
+Good
+
+Phone number must contain exactly 10 digits.
+
+Helpful.
+
+Specific.
+
+8.19 Form Reset
+
+After successful save
+
+Mutation
+
+↓
+
+Success
+
+↓
+
+Toast
+
+↓
+
+Reset Form
+
+↓
+
+Close Drawer
+
+Don't reset
+
+if backend fails.
+
+8.20 Dirty State
+
+Every form knows
+
+whether
+
+it has changed.
+
+Example
+
+User edits
+
+↓
+
+tries to close
+
+↓
+
+Dialog
+
+Discard changes?
+
+Cancel
+
+Discard
+
+Never silently lose work.
+
+8.21 Default Values
+
+Always provide defaults.
+
+Example
+
+Sale
+
+Date
+
+↓
+
+Today
+
+Payment
+
+↓
+
+Paid
+
+Quantity
+
+↓
+
+1
+
+Delivery
+
+↓
+
+0
+
+Fewer clicks.
+
+8.22 Disabled State
+
+During submission
+
+Everything disables.
+
+Prevent
+
+double submissions.
+
+Save button
+
+↓
+
+Spinner
+
+↓
+
+Disabled
+
+8.23 Loading State
+
+While loading
+
+customer
+
+or
+
+menu
+
+Show
+
+Skeleton
+
+Not empty dropdown.
+
+8.24 Keyboard Navigation
+
+Power users
+
+should navigate
+
+without mouse.
+
+Flow
+
+Customer
+
+↓
+
+Tab
+
+↓
+
+Items
+
+↓
+
+Tab
+
+↓
+
+Payment
+
+↓
+
+Save
+8.25 Enter Key
+
+Enter
+
+inside Item Picker
+
+↓
+
+Select Item
+
+Not
+
+Submit Form.
+
+Prevent accidental submission.
+
+8.26 Escape Key
+
+Escape
+
+↓
+
+Close Dropdown
+
+Escape
+
+↓
+
+Close Drawer
+
+Escape
+
+↓
+
+Close Modal
+
+Consistent everywhere.
+
+8.27 Focus Management
+
+After
+
+Add Item
+
+↓
+
+Focus
+
+Search Box
+
+After
+
+Remove Item
+
+↓
+
+Focus
+
+Next Row
+
+Never leave focus lost.
+
+8.28 Auto Save
+
+Should we implement?
+
+No.
+
+Reason
+
+Financial records.
+
+Explicit save
+
+is safer.
+
+8.29 Draft Saving
+
+Future enhancement.
+
+If implemented
+
+Save draft
+
+locally
+
+Not automatically
+
+to backend.
+
+8.30 Customer Autocomplete
+
+Flow
+
+Start Typing
+
+↓
+
+Suggestions
+
+↓
+
+Select
+
+↓
+
+Phone
+
+↓
+
+Address
+
+Auto Fill
+
+Exactly as intended in the project flow.
+
+8.31 Menu Search
+
+Item Picker
+
+should support
+
+Typing
+
+↓
+
+Filtering
+
+↓
+
+Arrow Keys
+
+↓
+
+Enter
+
+Very fast.
+
+8.32 Custom Menu Items
+
+Supports
+
+Other
+
+↓
+
+Name
+
+↓
+
+Price
+
+↓
+
+Optional
+
+Save to Menu
+
+Matching the Menu Master workflow defined in the project.
+
+8.33 Numeric Inputs
+
+Rules
+
+No negative values
+
+No letters
+
+No scientific notation
+
+No unnecessary decimals
+
+Amounts should be formatted consistently, while editing remains intuitive.
+
+8.34 Date Inputs
+
+Default
+
+Today
+
+Allow
+
+Past
+
+Never
+
+Future
+
+for sales
+
+(unless business requirements change).
+
+8.35 Payment Section
+
+Conditional rendering.
+
+If
+
+Unpaid
+
+↓
+
+Hide
+
+Payment Method
+
+If
+
+Paid
+
+↓
+
+Show
+
+Payment Method
+
+Cleaner UI.
+
+8.36 Form Composition
+
+Instead of
+
+SaleForm.tsx
+
+700 lines
+
+Split
+
+CustomerSection
+
+ItemsSection
+
+PaymentSection
+
+NotesSection
+
+SummarySection
+
+SaleForm
+
+just composes.
+
+8.37 Mutation Flow
+
+Always
+
+Validate
+
+↓
+
+Mutation
+
+↓
+
+Loading
+
+↓
+
+Success Toast
+
+↓
+
+Invalidate Cache
+
+↓
+
+Reset
+
+↓
+
+Close Drawer
+
+One flow.
+
+Every form.
+
+8.38 Accessibility
+
+Every input
+
+needs
+
+✓ Label
+
+✓ Error Message
+
+✓ Required Indicator
+
+✓ Keyboard Support
+
+✓ Screen Reader Name
+
+Accessibility is part of the form architecture, not an afterthought.
+
+8.39 Form Testing
+
+Test
+
+✓ Validation
+
+✓ Keyboard
+
+✓ Submit
+
+✓ Errors
+
+✓ Disabled State
+
+✓ Reset
+
+✓ Dirty State
+
+Business-critical forms deserve thorough testing.
+
+8.40 Form Checklist
+
+Before shipping a form, verify:
+
+Uses React Hook Form.
+Uses a dedicated Zod schema.
+No field is managed by individual useState unless it's purely UI state.
+Loading, success, and error states are handled.
+Double submissions are prevented.
+Keyboard navigation works.
+Mobile layout is comfortable.
+Backend remains the final authority for calculations.
+
+Part 9 — Sales Module Architecture (Deep Dive)
+
+Objective: Design the Sales module as the benchmark for the rest of the application. It is the most complex feature because it combines forms, dynamic UI, validation, customer lookup, menu integration, calculations, tables, filtering, pagination, and backend synchronization. The implementation should faithfully support the Sales workflow, Menu Master integration, and filtering capabilities described in the project flow.
+
+9.1 Philosophy
+
+The Sales module is the heart of Restro Rasoi.
+
+Everything else is comparatively simple.
+
+If Sales is architected correctly,
+
+then
+
+Expenditure
+Customers
+Menu
+Reports
+
+will naturally follow the same architecture.
+
+Never think of Sales as
+
+"A form."
+
+Think of it as
+
+A complete feature module.
+
+9.2 Feature Structure
+features/
+
+sales/
+
+├── components/
+│
+├── hooks/
+│
+├── services/
+│
+├── schemas/
+│
+├── types/
+│
+├── utils/
+│
+├── constants/
+│
+└── index.ts
+
+Everything related to Sales lives here.
+
+No leakage.
+
+9.3 Internal Folder Structure
+sales/
+
+components/
+
+├── SalesTable/
+├── SaleDrawer/
+├── SaleForm/
+├── CustomerSection/
+├── ItemsSection/
+├── PaymentSection/
+├── SummarySection/
+├── NotesSection/
+├── SalesFilters/
+├── SalesToolbar/
+├── ItemPicker/
+├── SelectedItemsTable/
+├── OrderSummary/
+└── index.ts
+
+Notice
+
+Every major UI section
+
+is its own component.
+
+9.4 Sales Page Architecture
+Sales Page
+
+│
+
+├── PageHeader
+
+├── SalesToolbar
+
+├── SalesFilters
+
+├── SalesTable
+
+├── Pagination
+
+└── SaleDrawer
+
+The page itself
+
+contains almost no logic.
+
+9.5 Component Tree
+Sales Page
+
+↓
+
+SalesToolbar
+
+↓
+
+SearchBox
+
+↓
+
+FilterBar
+
+↓
+
+SalesTable
+
+↓
+
+SaleDrawer
+
+↓
+
+SaleForm
+
+↓
+
+CustomerSection
+
+↓
+
+ItemsSection
+
+↓
+
+PaymentSection
+
+↓
+
+SummarySection
+
+↓
+
+NotesSection
+
+Very easy to reason about.
+
+9.6 Data Flow
+Backend
+
+↓
+
+Sales Service
+
+↓
+
+React Query
+
+↓
+
+useSales()
+
+↓
+
+Sales Page
+
+↓
+
+SalesTable
+
+Never
+
+SalesTable
+
+↓
+
+axios.get()
+9.7 State Ownership
+
+Sales Page owns
+
+Drawer Open
+
+Selected Sale
+
+Current Filters
+
+Pagination
+
+Sale Form owns
+
+React Hook Form
+
+Item Picker owns
+
+Dropdown State
+
+Search Query
+
+Each component owns only its own UI state.
+
+9.8 Sales Toolbar
+
+Contains
+
+Search
+
+Quick Filters
+
+Add Sale Button
+
+Refresh Button
+
+Future
+
+Export Button
+
+Print
+
+Nothing else.
+
+9.9 Sales Filters
+
+Support exactly what the backend API exposes:
+
+Search Customer
+
+↓
+
+Payment Status
+
+↓
+
+Payment Mode
+
+↓
+
+Date Range
+
+↓
+
+Quick Presets
+
+↓
+
+Reset
+
+Quick presets
+
+Today
+
+Yesterday
+
+This Week
+
+This Month
+
+This Year
+9.10 Search Architecture
+
+User
+
+↓
+
+Types
+
+↓
+
+300ms debounce
+
+↓
+
+URL updates
+
+↓
+
+React Query refetch
+
+↓
+
+Backend
+
+↓
+
+Updated Table
+
+Never
+
+filter locally.
+
+9.11 Table Columns
+
+Recommended order
+
+Date
+
+Customer
+
+Items
+
+Grand Total
+
+Payment
+
+Status
+
+Notes
+
+Actions
+
+Most important information first.
+
+9.12 Row Design
+
+Each row should remain
+
+single-line.
+
+Items
+
+Chicken Biryani
+
++2 more
+
+instead of
+
+showing
+
+every item.
+
+Click
+
+↓
+
+Expand
+
+or
+
+View
+
+for details.
+
+9.13 Expandable Row
+
+Optional
+
+Click
+
+↓
+
+Expand
+
+Shows
+
+Items
+
+Delivery
+
+Payment
+
+Notes
+
+Created Time
+
+without opening drawer.
+
+Very useful.
+
+9.14 Actions Column
+
+Contains only
+
+View
+
+Edit
+
+Delete
+
+No ten-icon toolbars.
+
+9.15 Sale Drawer
+
+The drawer becomes
+
+the workspace.
+
+Width
+
+Desktop
+
+480-520px
+
+Mobile
+
+Bottom Sheet
+
+9.16 Drawer Lifecycle
+
+Open
+
+↓
+
+Load data (edit only)
+
+↓
+
+Render form
+
+↓
+
+Submit
+
+↓
+
+Toast
+
+↓
+
+Close
+
+↓
+
+Invalidate queries
+
+Predictable every time.
+
+9.17 Sale Form Composition
+SaleForm
+
+│
+
+├── CustomerSection
+
+├── ItemsSection
+
+├── PaymentSection
+
+├── NotesSection
+
+└── SummarySection
+
+Each section
+
+owns only itself.
+
+9.18 Customer Section
+
+Responsibilities
+
+✓ Search existing customer
+
+✓ Create new customer
+
+✓ Auto-fill phone
+
+✓ Auto-fill address
+
+Never
+
+perform API mutations directly.
+
+9.19 Customer Lookup
+
+Flow
+
+Typing
+
+↓
+
+Debounce
+
+↓
+
+Customer Suggestions
+
+↓
+
+Select
+
+↓
+
+Fill Fields
+
+Fast
+
+No extra modal.
+
+9.20 Item Picker
+
+Probably the most reused component.
+
+Architecture
+
+Search
+
+↓
+
+Results
+
+↓
+
+Select
+
+↓
+
+Quantity
+
+↓
+
+Add
+
+Supports
+
+Keyboard
+
+Mouse
+
+Touch
+
+9.21 Item Search
+
+Should behave
+
+like Spotlight.
+
+Typing
+
+↓
+
+Instant filtering
+
+↓
+
+Arrow keys
+
+↓
+
+Enter
+
+↓
+
+Added.
+
+9.22 Selected Items Table
+Item
+
+Qty
+
+Price
+
+Total
+
+Delete
+
+Rows editable
+
+without reopening picker.
+
+9.23 Quantity Editing
+
+Use
+
+Stepper
+
+Not
+
+manual typing.
+
+Less mistakes.
+
+9.24 Custom Item
+
+Workflow
+
+Other
+
+↓
+
+Name
+
+↓
+
+Price
+
+↓
+
+Quantity
+
+↓
+
+Optional
+
+Save to Menu
+
+Exactly matching the Menu Master workflow.
+
+9.25 Summary Section
+
+Displays
+
+Subtotal
+
+↓
+
+Delivery Charge
+
+↓
+
+Grand Total
+
+Updates instantly.
+
+Backend still validates.
+
+9.26 Payment Section
+
+Conditional UI
+
+Paid
+
+↓
+
+Payment Mode
+
+Unpaid
+
+↓
+
+Hide Payment Mode
+
+Cleaner.
+
+9.27 Notes Section
+
+Always optional.
+
+Expandable
+
+textarea.
+
+Never required.
+
+9.28 Validation Flow
+
+User
+
+↓
+
+Client Validation
+
+↓
+
+Submit
+
+↓
+
+Backend Validation
+
+↓
+
+Success
+
+or
+
+↓
+
+Errors
+
+Never trust
+
+client validation alone.
+
+9.29 Create Flow
+Click Add Sale
+
+↓
+
+Drawer Opens
+
+↓
+
+Fill Form
+
+↓
+
+Save
+
+↓
+
+Loading
+
+↓
+
+Success Toast
+
+↓
+
+Drawer Closes
+
+↓
+
+Sales Refresh
+
+↓
+
+Dashboard Refresh
+9.30 Edit Flow
+Click Edit
+
+↓
+
+Drawer
+
+↓
+
+Load Existing Data
+
+↓
+
+Modify
+
+↓
+
+Save
+
+↓
+
+Invalidate
+
+Sales
+
+Dashboard
+
+Customers
+9.31 Delete Flow
+Delete
+
+↓
+
+Confirmation Dialog
+
+↓
+
+Delete Mutation
+
+↓
+
+Toast
+
+↓
+
+Refresh
+
+Never
+
+delete immediately.
+
+9.32 Loading States
+
+Table
+
+↓
+
+Skeleton Table
+
+Drawer
+
+↓
+
+Skeleton Form
+
+Autocomplete
+
+↓
+
+Loading Indicator
+
+Buttons
+
+↓
+
+Spinner
+
+9.33 Error Handling
+
+Autocomplete fails
+
+↓
+
+Still allow
+
+manual customer entry.
+
+Menu API fails
+
+↓
+
+Retry
+
+Do not crash
+
+the entire drawer.
+
+9.34 Mobile UX
+
+Single column
+
+Large buttons
+
+Sticky Save Button
+
+Bottom Sheet
+
+Minimum typing
+
+This aligns with the project's mobile-first goal.
+
+9.35 Keyboard UX
+
+Ctrl + N
+
+↓
+
+New Sale
+
+Tab
+
+↓
+
+Next Field
+
+Enter
+
+↓
+
+Select Item
+
+Esc
+
+↓
+
+Close Dropdown
+
+Never
+
+submit accidentally.
+
+9.36 Performance
+
+Only render
+
+visible rows.
+
+Memoize
+
+expensive components
+
+Item Picker
+
+↓
+
+Memoized
+
+Table Row
+
+↓
+
+Memoized
+
+Summary
+
+↓
+
+Derived
+
+Not stored.
+
+9.37 Query Invalidation
+
+Create
+
+↓
+
+Sales
+
+Dashboard
+
+Customers
+
+Edit
+
+↓
+
+Sales
+
+Dashboard
+
+Delete
+
+↓
+
+Sales
+
+Dashboard
+
+Customers
+
+Menu changes don't affect historical sale snapshots, so avoid invalidating sales unnecessarily.
+
+9.38 Edge Cases
+
+Handle
+
+Duplicate click
+
+↓
+
+Prevent
+
+Customer deleted
+
+↓
+
+Manual entry
+
+Menu item inactive
+
+↓
+
+Still display
+
+Historical price
+
+↓
+
+Preserved
+
+Internet lost
+
+↓
+
+Don't clear form
+
+Backend validation error
+
+↓
+
+Keep drawer open
+
+9.39 Notifications
+
+Success
+
+Sale recorded successfully.
+
+Edit
+
+Sale updated.
+
+Delete
+
+Sale deleted.
+
+Keep notifications
+
+short.
+
+9.40 Audit Information
+
+Edit screen should display
+
+Created
+
+Updated
+
+Created By (future)
+
+Updated By (future)
+
+Read-only.
+
+9.41 Security
+
+Frontend must never
+
+allow
+
+editing
+
+Grand Total
+
+directly.
+
+Only
+
+Items
+
+Delivery
+
+can change.
+
+Backend recalculates
+
+everything.
+
+9.42 Sales Module Checklist
+
+Before release
+
+✓ Drawer works
+
+✓ Mobile works
+
+✓ Keyboard works
+
+✓ Validation works
+
+✓ Autocomplete works
+
+✓ Item Picker works
+
+✓ Totals update live
+
+✓ Backend confirms totals
+
+✓ Queries invalidate correctly
+
+✓ No duplicated state
+
+✓ No API calls inside components
+
+9.43 Future Enhancements (Design-Ready)
+
+The architecture should allow these features later without major rewrites:
+
+Duplicate a previous sale as a starting point for a new order.
+Save frequently ordered combinations as templates.
+Print or download an invoice.
+Attach order receipts or payment screenshots.
+Barcode/QR-based order lookup (if ever needed).
+Offline draft mode with sync when connectivity returns.
+
+These are not part of the initial MVP but should not be blocked by architectural decisions.
+9.44 Non-Negotiable Rules
+The Sales page composes; it doesn't contain business logic.
+The drawer is the primary workflow for creating and editing sales.
+Every section of the form is its own component.
+The Item Picker is a reusable, first-class component.
+Totals shown in the UI are previews only.
+Backend responses are always the final authority.
+One mutation flow is followed consistently across create, update, and delete.
+Financial records are never optimistically created or deleted.
+
+Part 10 — Dashboard Architecture
+
+Objective: The Dashboard is the landing page after login. It should provide an at-a-glance overview of the cloud kitchen's financial health, allowing users to understand the business in under 10 seconds. It aggregates data from Sales and Expenditure without becoming the source of truth. The metrics and chart align with the dashboard endpoints defined in the project flow.
+
+10.1 Responsibilities
+
+The Dashboard is read-only.
+
+It should never contain CRUD operations.
+
+Responsibilities:
+
+Display business summary
+Show financial trends
+Highlight pending payments
+Surface quick insights
+Navigate users to relevant modules
+10.2 Component Structure
+Dashboard Page
+
+├── GreetingHeader
+├── DashboardToolbar
+├── SummaryCards
+├── SalesTrendChart
+├── TopSellingItems
+├── RecentSales
+└── QuickActions
+
+Every widget is independent.
+
+10.3 Summary Cards
+
+Display only high-value metrics:
+
+Total Sales
+Total Expenditure
+Net Profit
+Unpaid Amount
+
+Rules:
+
+Same card size
+Same animation
+Same spacing
+Currency uses JetBrains Mono
+Never overcrowd cards
+10.4 Dashboard Toolbar
+
+Contains:
+
+Month Selector
+View Toggle (This Month / All Time)
+Refresh
+
+Future:
+
+Export Report
+
+No search bar required.
+
+10.5 Chart Section
+
+Use Recharts AreaChart.
+
+Show:
+
+Sales
+
+↓
+
+Expenditure
+
+↓
+
+Profit
+
+Monthly trend.
+
+Rules:
+
+Smooth curves
+Minimal grid lines
+Glass tooltip
+Responsive
+No 3D effects
+No unnecessary gradients
+10.6 Top Selling Items
+
+Display:
+
+Item Name
+Total Orders
+Progress Indicator
+
+Limit to Top 5 items.
+
+Keep it lightweight.
+
+10.7 Recent Sales
+
+Display latest 5–10 sales.
+
+Columns:
+
+Customer
+Amount
+Payment Status
+Date
+
+Clicking a row navigates to the Sales module or opens the sale drawer.
+
+10.8 Quick Actions
+
+Provide shortcuts:
+
+Add Sale
+Add Expense
+Manage Menu
+
+These should open the corresponding drawer directly for faster workflows.
+
+10.9 Data Flow
+Dashboard
+
+↓
+
+useDashboard()
+
+↓
+
+dashboard.service.ts
+
+↓
+
+React Query
+
+↓
+
+Backend
+
+Dashboard never performs calculations.
+
+10.10 Rendering Strategy
+
+Use a hybrid approach:
+
+Summary metrics → Server-rendered for fast initial paint.
+Charts → Client Component.
+Recent Sales → Client Component with React Query.
+Quick Actions → Client Component.
+
+This minimizes JavaScript while preserving interactivity.
+
+10.11 Loading States
+
+Use dedicated skeletons:
+
+Summary Card Skeleton
+Chart Skeleton
+Recent Sales Skeleton
+
+Avoid full-page spinners.
+
+10.12 Empty States
+
+Examples:
+
+No sales yet.
+
+"Record your first sale to start tracking your business."
+
+Provide a clear CTA:
+
+Add Sale
+
+10.13 Error Handling
+
+If dashboard data fails:
+
+Show friendly error message.
+Retry button.
+Keep layout intact.
+
+Never display raw backend errors.
+
+10.14 Refresh Strategy
+
+Dashboard updates after:
+
+New Sale
+Updated Sale
+Deleted Sale
+New Expense
+Updated Expense
+Deleted Expense
+
+Manual refresh should also be available.
+
+Avoid aggressive polling.
+
+10.15 Performance Notes
+Lazy load charts.
+Memoize summary cards if needed.
+Limit recent sales.
+Cache dashboard data for a short duration (around 30–60 seconds).
+Avoid unnecessary re-renders.
+10.16 Edge Cases
+
+Handle gracefully:
+
+No sales recorded
+No expenses recorded
+Negative profit
+All payments unpaid
+Network unavailable
+
+Dashboard should remain usable even with partial data.
+
+10.17 Implementation Checklist
+Summary cards implemented
+Monthly/All-Time toggle
+Trend chart
+Recent sales list
+Quick actions
+Loading skeletons
+Error state
+Empty state
+Responsive layout
+Mobile-friendly cards
+Accessible keyboard navigation
+
+Part 11 — Expenditure Module Architecture
+
+Objective: The Expenditure module records all business expenses and provides a clean, searchable history. It intentionally mirrors the Sales module wherever possible to maximize code reuse while supporting the expenditure workflow defined in the project flow.
+
+11.1 Responsibilities
+
+The Expenditure module should:
+
+Record new expenses
+Edit existing expenses
+Delete incorrect entries
+Filter expenses
+Search expense history
+Feed dashboard calculations
+
+It should not calculate profit. That is the Dashboard's responsibility.
+
+11.2 Component Structure
+Expenditure Page
+
+├── PageHeader
+├── ExpenseToolbar
+├── ExpenseFilters
+├── ExpenseTable
+├── Pagination
+└── ExpenseDrawer
+
+Reuse the same layout and interaction patterns as the Sales module.
+
+11.3 Drawer Structure
+ExpenseDrawer
+
+├── ExpenseForm
+│
+├── BasicDetailsSection
+├── CategorySection
+├── AmountSection
+├── NotesSection
+└── FormActions
+11.4 Expense Form Fields
+
+Required:
+
+Date
+Category
+Description / Item
+Amount
+
+Optional:
+
+Notes
+
+Default values:
+
+Date → Today
+Amount → Empty
+Notes → Empty
+11.5 Categories
+
+Provide predefined categories:
+
+Ingredients
+Packaging
+Gas
+Delivery
+Utilities
+Maintenance
+Other
+
+These should be managed through constants, not hardcoded in components.
+
+11.6 Table Columns
+
+Display:
+
+Date
+Category
+Description
+Amount
+Notes
+Actions
+
+Keep rows compact and easy to scan.
+
+11.7 Filters
+
+Support:
+
+Date Range
+Category
+Minimum Amount
+Maximum Amount
+Reset Filters
+
+Filtering should always be server-side.
+
+11.8 Data Flow
+Expense Page
+
+↓
+
+useExpenses()
+
+↓
+
+expense.service.ts
+
+↓
+
+React Query
+
+↓
+
+Backend
+
+No direct API calls from components.
+
+11.9 CRUD Flow
+Create
+Add Expense
+
+↓
+
+Drawer
+
+↓
+
+Validate
+
+↓
+
+Save
+
+↓
+
+Toast
+
+↓
+
+Refresh Table
+
+↓
+
+Refresh Dashboard
+Edit
+Edit
+
+↓
+
+Drawer
+
+↓
+
+Update
+
+↓
+
+Toast
+
+↓
+
+Refresh
+Delete
+Delete
+
+↓
+
+Confirmation Dialog
+
+↓
+
+Delete
+
+↓
+
+Toast
+
+↓
+
+Refresh
+11.10 Validation Rules
+Category required
+Amount > 0
+Description required
+Date required
+Notes optional
+
+Backend remains the final authority for validation.
+
+11.11 Query Invalidation
+
+After Create/Edit/Delete:
+
+Invalidate:
+
+expenditure
+dashboard
+
+Customers and Menu are unaffected.
+
+11.12 Loading & Empty States
+
+Loading:
+
+Table Skeleton
+Drawer Skeleton
+
+Empty:
+
+"No expenses found."
+
+CTA:
+
+Add Expense
+
+11.13 Error Handling
+
+If expense retrieval fails:
+
+Friendly error message
+Retry action
+Preserve page layout
+
+If save fails:
+
+Keep drawer open
+Preserve user input
+Display validation or network error
+11.14 Mobile UX
+Bottom-sheet drawer
+Large numeric keypad for amount input
+Sticky Save button
+Single-column form layout
+11.15 Performance Notes
+Reuse DataTable component
+Debounce search/filter updates
+Cache expense list appropriately
+Lazy-load drawer if needed
+Avoid unnecessary re-renders
+11.16 Edge Cases
+
+Handle:
+
+Zero-value amount
+Negative amount
+Very long descriptions
+Deleted category (historical records remain valid)
+Network interruption during save
+11.17 Reuse Strategy
+
+The Expenditure module should reuse, not reinvent:
+
+AppShell
+DataTable
+FilterBar
+Drawer
+Confirmation Dialog
+FormField
+Button
+Status Toast
+Pagination
+
+Only the business-specific form and columns should differ from the Sales module.
+
+11.18 Implementation Checklist
+Expense table
+Add/Edit drawer
+Delete confirmation
+Server-side filters
+Pagination
+Validation
+Dashboard refresh
+Loading skeletons
+Empty state
+Error state
+Responsive design
+Accessibility compliance
+
+Part 12 — Customer Module Architecture
+
+Objective: The Customer module acts as the business's digital customer logbook. It should automatically maintain customer records from Sales, provide quick lookup capabilities, and display complete purchase history without allowing unnecessary manual management. This aligns with the Customer Logbook workflow described in the project flow.
+
+12.1 Responsibilities
+
+The Customer module should:
+
+Display all customers
+Search customers
+View customer profile
+View complete order history
+Display customer statistics
+Edit customer information (if required)
+
+Customer creation should happen automatically from Sales whenever possible.
+
+12.2 Component Structure
+Customers Page
+
+├── PageHeader
+├── CustomerToolbar
+├── CustomerFilters
+├── CustomerTable
+├── Pagination
+└── CustomerProfileDrawer
+
+The module should reuse the application's common DataTable and Drawer components.
+
+12.3 Customer Table
+
+Display:
+
+Customer Name
+Phone Number
+Total Orders
+Total Spend
+Outstanding Amount
+Actions
+
+Sort customers by Total Spend or Total Orders to quickly identify regular customers.
+
+12.4 Search & Filters
+
+Support:
+
+Name
+Phone Number
+
+Sorting:
+
+Highest Spend
+Highest Orders
+Recently Added
+
+Filtering remains server-side.
+
+12.5 Customer Profile
+
+Clicking a customer opens a detailed profile.
+
+Sections:
+
+Customer Details
+
+↓
+
+Statistics
+
+↓
+
+Outstanding Payments
+
+↓
+
+Order Timeline
+
+This avoids navigating to multiple pages.
+
+12.6 Customer Information
+
+Display:
+
+Name
+Phone
+Address
+Created Date
+
+Editable fields:
+
+Phone
+Address
+
+Name edits should be handled carefully because Sales records reference customer information.
+
+12.7 Customer Statistics
+
+Display:
+
+Total Orders
+Total Spend
+Average Order Value
+Last Order Date
+Outstanding Balance
+
+These values are read-only and originate from backend aggregations.
+
+12.8 Order Timeline
+
+Display chronological order history.
+
+Each entry should include:
+
+Order Date
+Items (collapsed)
+Grand Total
+Payment Status
+
+Selecting an order opens the Sales drawer or navigates to its details.
+
+12.9 Data Flow
+Customers Page
+
+↓
+
+useCustomers()
+
+↓
+
+customers.service.ts
+
+↓
+
+React Query
+
+↓
+
+Backend
+
+Customer profile uses a separate query to avoid loading complete histories for every table row.
+
+12.10 CRUD Strategy
+
+Create
+
+→ Automatic through Sales
+
+Edit
+
+→ Address & Phone only
+
+Delete
+
+→ Rarely used (confirmation required)
+
+Avoid encouraging manual customer creation unless absolutely necessary.
+
+12.11 Query Invalidation
+
+Invalidate:
+
+customers
+
+after:
+
+New Sale
+Customer Edit
+Customer Delete
+
+Dashboard generally does not require invalidation for customer-only edits.
+
+12.12 Loading & Empty States
+
+Loading:
+
+Table Skeleton
+Profile Skeleton
+
+Empty:
+
+"No customers found."
+
+CTA:
+
+Record your first sale
+
+since customers originate from sales.
+
+12.13 Error Handling
+
+If profile loading fails:
+
+Keep table visible
+Show retry inside profile drawer
+
+If search fails:
+
+Preserve current search input
+Allow retry without clearing filters
+12.14 Mobile UX
+
+Profile opens as a bottom sheet.
+
+Sections become stacked:
+
+Customer
+
+↓
+
+Statistics
+
+↓
+
+Timeline
+
+Large touch targets for calling or copying phone numbers (future enhancement).
+
+12.15 Performance Notes
+Paginate customer list.
+Load profile history only when opened.
+Virtualize long timelines if necessary.
+Cache customer profile separately from customer list.
+12.16 Edge Cases
+
+Handle:
+
+Customer with no completed orders
+Outstanding balance = ₹0
+Duplicate names (identify by phone/backend ID)
+Deleted or edited historical sales
+Missing phone number (legacy data)
+12.17 Future Enhancements
+
+Architecture should support:
+
+Favorite customers
+Customer notes
+Frequently ordered dishes
+Monthly spending trends
+WhatsApp quick contact
+Loyalty program integration
+
+These are future features and should not complicate the MVP.
+
+12.18 Implementation Checklist
+Customer table
+Search
+Sorting
+Customer profile
+Statistics section
+Order timeline
+Loading state
+Empty state
+Error state
+Mobile-friendly profile
+React Query integration
+Responsive design
+
+Part 13 — Menu Management Module Architecture
+
+Objective: The Menu module acts as the application's Price Master. It should manage dishes, prices, and availability while ensuring historical sales remain unchanged. It is an admin-focused module with simple CRUD operations that support the Sales workflow. This follows the Menu Master design described in the project flow.
+
+13.1 Responsibilities
+
+The Menu module should:
+
+Display all menu items
+Add new dishes
+Update prices
+Toggle Active/Inactive status
+Search menu items
+Filter by category
+
+It should not modify historical sales records.
+
+13.2 Component Structure
+Menu Page
+
+├── PageHeader
+├── MenuToolbar
+├── MenuFilters
+├── MenuTable
+├── Pagination
+└── MenuDrawer
+
+Reuse the common DataTable, Drawer, FormField, and Confirmation Dialog components.
+
+13.3 Menu Table
+
+Display:
+
+Dish Name
+Category
+Current Price
+Status
+Last Updated
+Actions
+
+Keep the table compact and optimized for quick editing.
+
+13.4 Filters
+
+Support:
+
+Search by Name
+Category
+Active / Inactive
+
+Sorting:
+
+Name
+Category
+Price
+Recently Updated
+
+All filtering and sorting should be server-side.
+
+13.5 Menu Drawer
+
+The drawer should support both Create and Edit modes.
+
+Fields:
+
+Dish Name
+Category
+Price
+Active Status
+
+Default values:
+
+Status → Active
+Category → Empty
+Price → Empty
+13.6 Price Update Rules
+
+Changing a menu item's price:
+
+Updates only future sales.
+Never changes historical sale records.
+Requires no manual recalculation.
+
+This preserves financial accuracy.
+
+13.7 Active / Inactive Strategy
+
+Avoid deleting menu items.
+
+Preferred workflow:
+
+Active
+
+↓
+
+Inactive
+
+Inactive items:
+
+Hidden from Item Picker
+Visible in Menu Management
+Still visible in historical sales
+13.8 Delete Strategy
+
+Allow permanent deletion only if the backend confirms the item has never been used in a sale.
+
+Otherwise:
+
+Use Deactivate instead.
+
+13.9 Data Flow
+Menu Page
+
+↓
+
+useMenu()
+
+↓
+
+menu.service.ts
+
+↓
+
+React Query
+
+↓
+
+Backend
+
+All CRUD operations follow the shared mutation architecture.
+
+13.10 CRUD Flow
+Create
+Add Menu Item
+
+↓
+
+Drawer
+
+↓
+
+Validate
+
+↓
+
+Save
+
+↓
+
+Toast
+
+↓
+
+Refresh Menu
+Edit
+Edit
+
+↓
+
+Drawer
+
+↓
+
+Update
+
+↓
+
+Toast
+
+↓
+
+Refresh
+Status Toggle
+Active
+
+↓
+
+Inactive
+
+↓
+
+Refresh
+Delete
+Delete
+
+↓
+
+Confirmation
+
+↓
+
+Backend Validation
+
+↓
+
+Delete
+
+↓
+
+Refresh
+13.11 Validation Rules
+
+Required:
+
+Name
+Price
+
+Optional:
+
+Category
+
+Validation:
+
+Price > 0
+Name unique (backend validation)
+No empty strings
+13.12 Query Invalidation
+
+After:
+
+Create
+Edit
+Status Toggle
+Delete
+
+Invalidate:
+
+menu
+
+Dashboard, Customers, and Expenditure are unaffected.
+
+13.13 Loading & Empty States
+
+Loading:
+
+Menu Table Skeleton
+Drawer Skeleton
+
+Empty:
+
+"No menu items found."
+
+CTA:
+
+Add Menu Item
+
+13.14 Error Handling
+
+If retrieval fails:
+
+Show retry action.
+Preserve filters.
+
+If save fails:
+
+Keep drawer open.
+Preserve entered values.
+Display validation errors.
+13.15 Mobile UX
+Bottom-sheet drawer
+Large numeric keypad for price
+Sticky Save button
+Single-column form
+
+Since this page is used less frequently than Sales, prioritize clarity over density.
+
+13.16 Performance Notes
+Paginate menu list.
+Cache menu data longer than Sales (menu changes infrequently).
+Lazy-load drawer.
+Reuse common DataTable and Form components.
+13.17 Edge Cases
+
+Handle:
+
+Duplicate dish names
+Price = 0
+Negative price
+Item deactivated while another user is adding a sale
+Backend rejects deletion due to historical references
+13.18 Integration with Sales
+
+The Menu module directly supports the Sales workflow:
+
+Active items populate the Item Picker.
+Updated prices apply only to future sales.
+Inactive items are excluded from new orders.
+Historical sales always display the stored snapshot price.
+
+This relationship should remain one-way: Sales consumes Menu data but does not manage the Menu itself.
+
+13.19 Future Enhancements
+
+Architecture should support:
+
+Menu images
+Preparation time
+Item availability by day
+Combo meals
+Seasonal menu items
+Bulk price updates
+Import/Export via Excel
+
+These features should be easy to add without restructuring the module.
+
+13.20 Implementation Checklist
+Menu table
+Search
+Category filter
+Active/Inactive toggle
+Add/Edit drawer
+Delete confirmation
+Validation
+Loading state
+Empty state
+Error state
+React Query integration
+Responsive design
+Accessibility compliance
+
+Part 14 — Authentication & Application Security Architecture
+
+Objective: Build a secure authentication system that protects business data while remaining invisible to the user. Authentication should require minimal interaction after login and should follow modern web security practices.
+
+14.1 Authentication Philosophy
+
+Authentication should be:
+
+Secure
+Invisible
+Reliable
+Easy to maintain
+
+Users should log in once and focus on managing the business—not on authentication.
+
+14.2 Authentication Flow
+Login
+
+↓
+
+Backend Validation
+
+↓
+
+Session Cookie
+
+↓
+
+Dashboard
+
+↓
+
+Authenticated Requests
+
+No frontend token management.
+
+14.3 Session Management
+
+Use:
+
+HttpOnly Cookies
+Secure Cookies (Production)
+SameSite Policy
+Automatic Session Validation
+
+Avoid storing authentication tokens in:
+
+localStorage
+sessionStorage
+IndexedDB
+14.4 Route Protection
+
+Protect every route inside:
+
+(app)
+
+Flow:
+
+User Opens Dashboard
+
+↓
+
+Session Exists?
+
+↓
+
+Yes
+
+↓
+
+Render
+
+↓
+
+No
+
+↓
+
+Redirect → Login
+
+Route protection should happen before rendering protected content.
+
+14.5 Login Page
+
+Fields:
+
+Email / Username
+Password
+
+Actions:
+
+Login
+Forgot Password (Future)
+
+Keep the UI minimal and distraction-free.
+
+14.6 Logout Flow
+Logout
+
+↓
+
+Invalidate Session
+
+↓
+
+Clear React Query Cache
+
+↓
+
+Redirect Login
+
+Never leave cached business data after logout.
+
+14.7 Authorization
+
+Current MVP:
+
+Single Admin User
+
+Future-ready structure:
+
+Admin
+Manager
+Staff
+
+Even if only one role exists today, avoid hardcoding role assumptions throughout the UI.
+
+14.8 Protected UI
+
+Users should never see navigation for pages they cannot access.
+
+Example:
+
+Future Staff role
+
+↓
+
+Hide
+
+Menu Management
+Settings
+
+Security must still be enforced by the backend.
+
+14.9 Session Expiry
+
+If session expires:
+
+401
+
+↓
+
+Redirect Login
+
+↓
+
+Show
+
+"Your session has expired. Please sign in again."
+
+Never leave users on a broken page.
+
+14.10 API Security
+
+Every API request should:
+
+Include credentials
+Use HTTPS (Production)
+Handle Unauthorized responses consistently
+
+All requests pass through the shared Axios instance.
+
+14.11 Frontend Security Rules
+
+Never trust:
+
+User input
+Calculated totals
+Modified request payloads
+
+The backend validates everything.
+
+14.12 Sensitive Data
+
+Never expose:
+
+Passwords
+Session IDs
+Internal API errors
+Stack traces
+
+Show user-friendly messages instead.
+
+14.13 Environment Variables
+
+Keep configurable values in environment variables:
+
+API Base URL
+Application Name
+Feature Flags (Future)
+
+Never commit secrets to Git.
+
+14.14 Future Enhancements
+
+Architecture should support:
+
+Multiple users
+Role-Based Access Control (RBAC)
+Two-Factor Authentication
+Password Reset
+Activity Logs
+
+These should integrate without changing the existing authentication flow.
+
+14.15 Implementation Checklist
+Login page
+Protected routes
+Session validation
+Logout flow
+Unauthorized handling
+Secure cookie support
+React Query cache reset on logout
+Environment variable configuration
+Future role compatibility
+
+Part 15 — Performance, Accessibility & Production Readiness
+
+Objective: Ensure the application remains fast, accessible, and production-ready as the business grows. Performance and accessibility are architectural concerns and should be built into the project from the beginning rather than added later.
+
+15.1 Performance Philosophy
+
+Performance is measured by user experience, not benchmark scores.
+
+The application should feel:
+
+Instant
+Responsive
+Smooth
+Predictable
+
+Every optimization should have a measurable benefit.
+
+15.2 Bundle Optimization
+
+Guidelines:
+
+Import only required modules.
+Avoid large utility libraries when native APIs suffice.
+Remove unused dependencies regularly.
+Prefer tree-shakeable libraries.
+
+Goal:
+
+Keep the JavaScript bundle as small as practical.
+
+15.3 Code Splitting
+
+Lazy-load features that aren't immediately needed:
+
+Charts
+Drawers
+Dialogs
+Settings
+Reports (future)
+
+Critical UI should load first.
+
+15.4 Image Optimization
+
+Rules:
+
+Use next/image for all static images.
+Compress background assets.
+Serve modern formats (WebP/AVIF when possible).
+Define image dimensions to prevent layout shifts.
+
+The Liquid Glass background should load once and remain cached.
+
+15.5 Rendering Performance
+
+Avoid unnecessary renders by:
+
+Memoizing expensive components only when profiling justifies it.
+Keeping state local.
+Avoiding unnecessary Context updates.
+Using stable query keys.
+
+Do not overuse React.memo() or useMemo() prematurely.
+
+15.6 React Query Performance
+
+Configure queries appropriately:
+
+Cache frequently used data.
+Avoid duplicate requests.
+Invalidate only affected queries.
+Use background refetch where appropriate.
+
+Do not disable caching unless absolutely necessary.
+
+15.7 Large Lists
+
+If data grows significantly:
+
+Paginate first.
+Virtualize only when pagination is insufficient.
+
+Avoid rendering hundreds of rows simultaneously.
+
+15.8 Accessibility
+
+Every interactive element must support:
+
+Keyboard navigation
+Visible focus state
+Screen readers
+Sufficient color contrast
+Touch-friendly sizing
+
+Accessibility is a requirement, not an enhancement.
+
+15.9 Keyboard Navigation
+
+Ensure users can:
+
+Navigate with Tab
+Activate with Enter/Space
+Close dialogs with Escape
+Move through menus using Arrow keys where appropriate
+
+Avoid keyboard traps.
+
+15.10 Screen Readers
+
+Every important control should have:
+
+Accessible labels
+Descriptive button text
+Correct ARIA attributes when required
+
+Do not rely solely on icons.
+
+15.11 Responsive Design
+
+Support:
+
+Mobile
+Tablet
+Desktop
+
+Layouts should adapt naturally without maintaining separate codebases.
+
+15.12 Error Boundaries
+
+Provide graceful fallbacks for unexpected React errors.
+
+Display:
+
+"Something went wrong."
+
+with a retry or refresh option.
+
+Prevent the entire application from crashing.
+
+15.13 Monitoring & Logging
+
+Future production deployments should support:
+
+Error monitoring (e.g., Sentry)
+Performance monitoring
+API failure logging
+
+Frontend logs should help debugging without exposing sensitive information.
+
+15.14 Lighthouse Goals
+
+Target:
+
+Performance ≥ 90
+Accessibility ≥ 95
+Best Practices ≥ 95
+SEO ≥ 90 (future public pages)
+
+These are goals, not absolute requirements.
+
+15.15 Production Checklist
+
+Before deployment:
+
+No TypeScript errors
+No ESLint errors
+No unused files
+No unused dependencies
+Responsive verified
+Accessibility verified
+Error boundaries implemented
+Environment variables configured
+Production build tested
+Performance reviewed
+15.16 Code Quality Rules
+
+Maintain consistency:
+
+Small, focused components
+Meaningful variable names
+No commented-out code
+No duplicate logic
+No console.log() left in production
+Clear commit history
+
+Refactor continuously instead of accumulating technical debt.
+
+15.17 Documentation
+
+Maintain:
+
+Updated README
+Environment setup guide
+Folder structure overview
+Feature documentation
+API integration notes
+
+Documentation should evolve with the project.
+
+15.18 Future Scalability
+
+The architecture should allow adding:
+
+Inventory Management
+Employee Management
+Supplier Management
+Reports & Analytics
+Multi-branch Support
+Role-Based Access Control
+Notification System
+
+without requiring major structural changes.
+
+15.19 Final Engineering Principles
+
+Throughout the project, follow these principles:
+
+Build reusable components before feature-specific ones.
+Keep business logic out of UI components.
+Prefer composition over duplication.
+Minimize dependencies.
+Let the backend remain the source of truth.
+Optimize only after identifying real bottlenecks.
+Keep the user experience simple and consistent.
+Every new feature should integrate into the existing architecture—not create a new pattern.

@@ -6,6 +6,10 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
+    "seed-owner": "node src/scripts/seed-owner.js",
+    "seed-admin": "node src/scripts/seed-admin.js",
+    "seed-menu": "node src/scripts/seed-menu.js",
+    "seed-customer": "node src/scripts/seed-customer.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

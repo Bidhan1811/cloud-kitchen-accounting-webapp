@@ -34,8 +34,26 @@ export const getCustomers = async ({
 
   const total = await Customer.countDocuments(query);
 
+  // Outstanding balance isn't stored on Customer — it's derived from Sale
+  // documents with a nonzero balanceDue (Unpaid or Partial sales). Computed
+  // here in one aggregation covering just this page's customers, rather than
+  // a query per row.
+  const customerIds = customers.map((c) => c._id);
+  const outstandingByCustomer = await Sale.aggregate([
+    { $match: { customer: { $in: customerIds }, balanceDue: { $gt: 0 } } },
+    { $group: { _id: "$customer", outstanding: { $sum: "$balanceDue" } } },
+  ]);
+  const outstandingMap = new Map(
+    outstandingByCustomer.map((row) => [row._id.toString(), row.outstanding])
+  );
+
+  const customersWithOutstanding = customers.map((customer) => ({
+    ...customer.toObject(),
+    outstanding: outstandingMap.get(customer._id.toString()) ?? 0,
+  }));
+
   return {
-    customers,
+    customers: customersWithOutstanding,
     pagination: {
       total,
       page: parseInt(page),
@@ -51,11 +69,15 @@ export const getCustomerById = async (id) => {
     throw new ApiError(404, "Customer not found");
   }
 
-  // Fetch full order history joined from Sales
-  const orderHistory = await Sale.find({ customerPhone: customer.phone }).sort({ date: -1 });
+  // Fetch full order history via the hard customer ref, not phone matching —
+  // this is the correct source of truth now that Sale.customer exists, and
+  // stays accurate even if the customer's phone number is later changed.
+  const orderHistory = await Sale.find({ customer: customer._id }).sort({ date: -1 });
+
+  const outstanding = orderHistory.reduce((sum, sale) => sum + (sale.balanceDue || 0), 0);
 
   return {
-    profile: customer,
+    profile: { ...customer.toObject(), outstanding },
     orderHistory,
   };
 };
@@ -80,15 +102,33 @@ export const updateCustomer = async (id, data) => {
     if (existingCustomer) {
       throw new ApiError(409, "A customer with this phone number already exists");
     }
-    
-    // If phone number changes, we should ideally update all their past sales to reflect the new phone number
-    // since we use customerPhone as the foreign key in Sale model.
+
+    // The hard `customer` ref on Sale means order history/aggregates don't
+    // depend on phone matching anymore — but customerPhone is still kept as
+    // a denormalized snapshot field for display on historical invoices, so
+    // sync it here to keep old sales showing the customer's current number.
+    // (If you'd rather old invoices freeze at the number used at checkout,
+    // remove this block — it's a product choice, not a correctness fix.)
     if (data.phone !== customer.phone) {
       await Sale.updateMany(
-        { customerPhone: customer.phone },
+        { customer: customer._id },
         { $set: { customerPhone: data.phone } }
       );
     }
+  }
+
+  if (data.name && data.name !== customer.name) {
+    await Sale.updateMany(
+      { customer: customer._id },
+      { $set: { customerName: data.name } }
+    );
+  }
+
+  if (data.address !== undefined && data.address !== customer.address) {
+    await Sale.updateMany(
+      { customer: customer._id },
+      { $set: { customerAddress: data.address } }
+    );
   }
 
   Object.assign(customer, data);

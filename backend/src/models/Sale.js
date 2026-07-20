@@ -34,6 +34,18 @@ const saleSchema = new Schema(
       default: Date.now,
       required: [true, "Date is required"],
     },
+    // Hard link to the Customer document. Always set — even for a brand-new
+    // customer, the service upserts the Customer first and stores its _id
+    // here before the Sale is created.
+    customer: {
+      type: Schema.Types.ObjectId,
+      ref: "Customer",
+      required: [true, "Customer reference is required"],
+    },
+    // Denormalized snapshot of the customer's details at the time of sale.
+    // Kept alongside the ref (not instead of it) so historical invoices keep
+    // displaying the name/phone/address as they were at checkout, even if
+    // the customer's profile is edited later.
     customerName: {
       type: String,
       required: [true, "Customer name is required"],
@@ -43,6 +55,11 @@ const saleSchema = new Schema(
       type: String,
       required: [true, "Customer phone is required"],
       trim: true,
+    },
+    customerAddress: {
+      type: String,
+      trim: true,
+      default: "",
     },
     items: {
       type: [saleItemSchema],
@@ -68,15 +85,29 @@ const saleSchema = new Schema(
     },
     paymentStatus: {
       type: String,
-      enum: ["Paid", "Unpaid"],
+      enum: ["Paid", "Unpaid", "Partial"],
       required: [true, "Payment status is required"],
     },
     paymentMode: {
       type: String,
-      enum: ["Cash", "UPI", "Card", "Bank Transfer", "Other"],
+      enum: ["Cash", "UPI", "Card", "Credit"],
       required: function () {
-        return this.paymentStatus === "Paid";
+        return this.paymentStatus === "Paid" || this.paymentStatus === "Partial";
       },
+    },
+    // Only meaningful when paymentStatus is "Partial". Represents how much of
+    // the grandTotal has actually been collected so far.
+    amountPaid: {
+      type: Number,
+      default: 0,
+      min: [0, "Amount paid cannot be negative"],
+    },
+    // Derived convenience field: grandTotal - amountPaid. Kept in sync in the
+    // pre-validate hook below so callers don't have to compute it themselves.
+    balanceDue: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
     notes: {
       type: String,
@@ -98,17 +129,28 @@ saleSchema.pre("validate", function (next) {
     this.itemsTotal = calculatedItemsTotal;
     this.grandTotal = this.itemsTotal + (this.deliveryCharge || 0);
   }
-  
-  // If payment status is unpaid, we optionally clear/ignore paymentMode
-  if (this.paymentStatus === "Unpaid") {
+
+  // Keep amountPaid/balanceDue consistent with paymentStatus
+  if (this.paymentStatus === "Paid") {
+    this.amountPaid = this.grandTotal;
+    this.balanceDue = 0;
+  } else if (this.paymentStatus === "Unpaid") {
+    this.amountPaid = 0;
     this.paymentMode = undefined;
+    this.balanceDue = this.grandTotal;
+  } else if (this.paymentStatus === "Partial") {
+    // amountPaid must be provided by the caller and less than grandTotal;
+    // clamp defensively so balanceDue never goes negative.
+    this.amountPaid = Math.min(this.amountPaid || 0, this.grandTotal);
+    this.balanceDue = this.grandTotal - this.amountPaid;
   }
-  
+
   next();
 });
 
 // Indexes for common queries (Dashboard / Filtering)
 saleSchema.index({ date: -1 });
+saleSchema.index({ customer: 1 });
 saleSchema.index({ customerPhone: 1 });
 saleSchema.index({ paymentStatus: 1 });
 

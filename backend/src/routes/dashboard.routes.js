@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getSummary, getMonthly, getTrend } from "../controllers/dashboard.controller.js";
+import { getSummary, getMonthly, getTrend, getChart, getTopItems, getRecentSales } from "../controllers/dashboard.controller.js";
 import { verifyJWT, requireRole } from "../middleware/auth.js";
 
 const router = Router();
@@ -10,5 +10,9 @@ router.use(verifyJWT, requireRole("admin"));
 router.get("/summary", getSummary);
 router.get("/monthly", getMonthly);
 router.get("/trend", getTrend);
+router.get("/chart", getChart);
+router.get("/top-items", getTopItems);
+router.get("/recent-sales", getRecentSales);
+
 
 export default router;

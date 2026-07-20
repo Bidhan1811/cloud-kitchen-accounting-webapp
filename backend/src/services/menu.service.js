@@ -2,30 +2,44 @@ import { MenuItem } from "../models/MenuItem.js";
 import { Sale } from "../models/Sale.js";
 import { ApiError } from "../utils/ApiError.js";
 
-export const getMenuItems = async ({ search, category, activeOnly = true }) => {
+export const getMenuItems = async ({ search, category, activeOnly = true, page = 1, limit = 10 }) => {
   const query = {};
-  
-  if (activeOnly) {
-    query.isActive = true;
-  } else if (activeOnly === false || activeOnly === "false") {
-    // If explicitly asked for all, don't filter by isActive
-    // Wait, the param could be a string if coming from query params
-    // Let's handle it
-  }
 
-  if (activeOnly === "true") {
+  // activeOnly can arrive as a boolean (default) or a string (from query params)
+  const isActiveOnly = activeOnly === true || activeOnly === "true";
+  if (isActiveOnly) {
     query.isActive = true;
   }
 
   if (search) {
     query.name = { $regex: search, $options: "i" };
   }
-  
+
   if (category) {
     query.category = category;
   }
 
-  return await MenuItem.find(query).sort({ category: 1, name: 1 });
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const limitNum = Math.max(1, parseInt(limit, 10) || 10);
+  const skip = (pageNum - 1) * limitNum;
+
+  const [items, total] = await Promise.all([
+    MenuItem.find(query)
+      .sort({ category: 1, name: 1 })
+      .skip(skip)
+      .limit(limitNum),
+    MenuItem.countDocuments(query),
+  ]);
+
+  return {
+    data: items,
+    pagination: {
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum) || 1,
+    },
+  };
 };
 
 export const createMenuItem = async (data) => {
