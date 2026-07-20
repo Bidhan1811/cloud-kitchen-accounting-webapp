@@ -29,6 +29,7 @@ const menuSchema = z.object({
   name: z.string().min(2, "Name required"),
   category: z.string().min(1, "Category required"),
   price: z.number().min(1, "Price must be > 0"),
+  halfPrice: z.union([z.number().min(1, "Half price must be > 0"), z.literal(0)]).optional(),
   description: z.string().optional(),
 });
 type MenuFormData = z.infer<typeof menuSchema>;
@@ -54,7 +55,20 @@ function MenuItemForm({ onSubmit, isSubmitting, onCancel, defaultValues }: {
         </select>
         {errors.category && <p className="text-[12px] text-[#C0524A]">{errors.category.message}</p>}
       </div>
-      <Input label="Price (₹)" type="number" placeholder="220" {...register("price", { valueAsNumber: true })} error={errors.price?.message} />
+      <div className="grid grid-cols-2 gap-3">
+        <Input label="Full Plate Price (₹)" type="number" placeholder="220" {...register("price", { valueAsNumber: true })} error={errors.price?.message} />
+        <div className="flex flex-col gap-[6px]">
+          <Input
+            label="Half Plate Price (₹) — optional"
+            type="number"
+            placeholder="leave blank if N/A"
+            {...register("halfPrice", {
+              setValueAs: (v) => (v === "" || v === undefined ? undefined : Number(v)),
+            })}
+            error={errors.halfPrice?.message}
+          />
+        </div>
+      </div>
       <Input label="Description (Optional)" placeholder="Brief description..." {...register("description")} />
       <div className="flex gap-3 pt-2">
         <Button variant="secondary" fullWidth type="button" onClick={onCancel}>Cancel</Button>
@@ -96,7 +110,19 @@ export default function MenuPage() {
       ),
     },
     { key: "category", header: "Category", render: (r) => <span className="text-[12px] text-[#6B5D50]">{getCatLabel(r.category)}</span> },
-    { key: "price", header: "Price (₹)", className: "amount", render: (r) => formatCurrency(r.price) },
+    {
+      key: "price",
+      header: "Price (₹)",
+      className: "amount",
+      render: (r) => (
+        <div className="flex flex-col items-end gap-0.5">
+          <span>{formatCurrency(r.price)}</span>
+          {r.halfPrice !== undefined && (
+            <span className="text-[10px] text-[#9E8E80] font-[400]">½ {formatCurrency(r.halfPrice)}</span>
+          )}
+        </div>
+      ),
+    },
     { key: "status", header: "Status", render: (r) => <StatusBadge status={r.isActive ? "active" : "inactive"} /> },
     {
       key: "actions",
@@ -172,7 +198,7 @@ export default function MenuPage() {
         subtitle="Manage your kitchen offerings"
       >
         <MenuItemForm
-          defaultValues={editItem ? { name: editItem.name, category: editItem.category, price: editItem.price, description: editItem.description } : undefined}
+          defaultValues={editItem ? { name: editItem.name, category: editItem.category, price: editItem.price, halfPrice: editItem.halfPrice, description: editItem.description } : undefined}
           isSubmitting={editItem ? isUpdating : isCreating}
           onCancel={() => { setDrawerOpen(false); setEditItem(null); }}
           onSubmit={async (data) => {

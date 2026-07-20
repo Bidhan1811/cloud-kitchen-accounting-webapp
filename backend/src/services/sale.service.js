@@ -116,10 +116,25 @@ export const createSale = async (data) => {
           `Menu item '${item.itemName}' not found in master list. Mark as custom if it's a new item.`
         );
       }
+
+      // Check if it's a half plate request to ensure the menu item supports it
+      const isHalf = item.portion === "half";
+      if (isHalf && (menuItem.halfPrice === undefined || menuItem.halfPrice === null)) {
+        throw new ApiError(
+          400,
+          `Menu item '${item.itemName}' does not have a half-plate option.`
+        );
+      }
+      
+      // We allow the frontend to override the price for this specific sale.
+      // If a custom price was entered, use it; otherwise fallback to the master price.
+      const masterPrice = isHalf ? menuItem.halfPrice : menuItem.price;
+      const finalPrice = item.unitPrice !== undefined ? item.unitPrice : masterPrice;
+
       return {
         ...item,
-        unitPrice: menuItem.price, // Trust backend price snapshot
-        lineTotal: item.quantity * menuItem.price,
+        unitPrice: finalPrice,
+        lineTotal: item.quantity * finalPrice,
       };
     })
   );
@@ -189,9 +204,23 @@ export const updateSale = async (id, data) => {
         if (!menuItem) {
           throw new ApiError(400, `Menu item '${item.itemName}' not found.`);
         }
+
+        // Same portion-aware logic and price override as createSale
+        const isHalf = item.portion === "half";
+        if (isHalf && (menuItem.halfPrice === undefined || menuItem.halfPrice === null)) {
+          throw new ApiError(
+            400,
+            `Menu item '${item.itemName}' does not have a half-plate option.`
+          );
+        }
+        
+        const masterPrice = isHalf ? menuItem.halfPrice : menuItem.price;
+        const finalPrice = item.unitPrice !== undefined ? item.unitPrice : masterPrice;
+
         return {
           ...item,
-          unitPrice: menuItem.price,
+          unitPrice: finalPrice,
+          lineTotal: item.quantity * finalPrice,
         };
       })
     );

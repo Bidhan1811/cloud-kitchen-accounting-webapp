@@ -26,9 +26,19 @@ export function Stepper({ value, onChange, min = 0, max = 999, disabled = false 
       >
         <Minus size={14} />
       </button>
-      <span className="stepper-value" aria-live="polite" aria-atomic="true">
-        {value}
-      </span>
+      <input
+        type="number"
+        value={value}
+        onChange={(e) => {
+          const val = parseInt(e.target.value, 10);
+          if (!isNaN(val)) onChange(val);
+        }}
+        className="stepper-value w-8 text-center bg-transparent outline-none p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+        aria-label="Quantity"
+        min={min}
+        max={max}
+        disabled={disabled}
+      />
       <button
         type="button"
         className="stepper-btn"

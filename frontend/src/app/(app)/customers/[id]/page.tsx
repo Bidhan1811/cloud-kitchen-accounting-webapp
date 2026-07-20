@@ -11,11 +11,15 @@ import { formatCurrency } from "@/utils/formatCurrency";
 import { formatDate } from "@/utils/formatDate";
 import { generateInitials, stringToColor } from "@/utils/strings";
 import { cn } from "@/utils/cn";
+import { SaleDetail } from "@/features/sales/components/SaleDetail";
+import { AnimatePresence } from "framer-motion";
+import type { Sale } from "@/features/sales/types/sale.types";
 
 export default function CustomerProfilePage({ params }: { params: Promise<{ id: string }>; }) {
   const { id } = use(params);
   const { data: customer, isLoading } = useCustomer(id);
   const { data: orders, isLoading: ordersLoading } = useCustomerOrders(id);
+  const [viewingSale, setViewingSale] = React.useState<Sale | null>(null);
 
   if (isLoading) {
     return (
@@ -65,7 +69,7 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ id: 
         <div className="grid grid-cols-3 gap-4 text-center">
           {[
             { label: "Total Orders", value: customer.totalOrders, mono: false },
-            { label: "Total Spent", value: formatCurrency(customer.totalSpent), mono: true },
+            { label: "Total Spent", value: formatCurrency(customer.totalSpend), mono: true },
             { label: "Outstanding", value: formatCurrency(customer.outstanding), mono: true, danger: customer.outstanding > 0 },
           ].map((stat) => (
             <div key={stat.label} className="glass-card px-4 py-3">
@@ -102,7 +106,11 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ id: 
               </thead>
               <tbody>
                 {orders.map((order) => (
-                  <tr key={order._id}>
+                  <tr 
+                    key={order._id} 
+                    className="cursor-pointer hover:bg-[rgba(200,135,58,0.04)] transition-colors"
+                    onClick={() => setViewingSale(order)}
+                  >
                     <td className="font-mono text-[12px] text-[#C8873A] font-[600]">{order.invoiceId}</td>
                     <td className="text-[12px] text-[#9E8E80]">{formatDate(order.date)}</td>
                     <td className="amount">{formatCurrency(order.grandTotal)}</td>
@@ -114,6 +122,22 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ id: 
           </div>
         )}
       </div>
+
+      {/* Detail view modal */}
+      <AnimatePresence>
+        {viewingSale && (
+          <>
+            <div
+              className="fixed inset-0 z-[50] bg-[rgba(30,20,10,0.15)] backdrop-blur-[3px]"
+              onClick={() => setViewingSale(null)}
+            />
+            <SaleDetail
+              sale={viewingSale}
+              onClose={() => setViewingSale(null)}
+            />
+          </>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

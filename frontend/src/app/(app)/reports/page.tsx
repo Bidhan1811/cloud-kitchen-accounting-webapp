@@ -53,7 +53,7 @@ export default function ReportsPage() {
   const { data: chartData, isLoading: chartLoading } = useQuery({
     queryKey: ["reports", "monthly-chart"],
     queryFn: async () => {
-      const { data } = await apiClient.get("/dashboard/monthly-chart");
+      const { data } = await apiClient.get("/dashboard/trend");
       return data.data as { month: string; sales: number; expenses: number; profit: number }[];
     },
   });

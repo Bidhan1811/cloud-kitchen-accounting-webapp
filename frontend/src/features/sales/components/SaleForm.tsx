@@ -46,6 +46,9 @@ const saleSchema = z
           itemName: z.string().min(1, "Item name required"),
           quantity: z.number().min(1, "Qty must be ≥ 1"),
           unitPrice: z.number().min(0, "Price must be ≥ 0"),
+          // halfPrice is stored in form state for live toggle — not sent to backend
+          halfPrice: z.number().optional(),
+          portion: z.enum(["full", "half"]).optional(),
           isCustom: z.boolean().optional(),
           menuItem: z.string().optional(),
         })
@@ -172,13 +175,58 @@ export function SaleForm({ onSubmit, isSubmitting, onCancel, defaultValues }: Sa
   };
 
   const handleAddItem = (item: MenuItem) => {
-    append({ itemName: item.name, quantity: 1, unitPrice: item.price, menuItem: item._id, isCustom: false });
+    append({
+      itemName: item.name,
+      quantity: 1,
+      unitPrice: item.price,
+      halfPrice: item.halfPrice,
+      portion: "full",
+      menuItem: item._id,
+      isCustom: false,
+    });
     setShowItemPicker(false);
   };
 
   const handleAddCustomItem = () => {
     append({ itemName: "", quantity: 1, unitPrice: 0, isCustom: true });
     setShowItemPicker(false);
+  };
+
+
+  // Retrieve the full price for an item by looking at the current unitPrice when
+  // portion is "full", or at a separately stored reference.
+  // We store fullPrice as a parallel field not sent to backend; simple approach:
+  // derive it from the fact that when portion flips to "half" we store halfPrice
+  // and when flipping back to "full" we need the original full price.
+  // We use a ref map keyed by field index to remember the original full price.
+  const fullPriceRef = useRef<Record<number, number>>({});
+
+  const getFullPrice = (index: number) => fullPriceRef.current[index] ?? watchedItems[index]?.unitPrice ?? 0;
+
+  // When a menu item is appended we record its full price so toggling back works.
+  useEffect(() => {
+    watchedItems.forEach((item, i) => {
+      if (!item.isCustom && item.portion === "full" && item.halfPrice !== undefined) {
+        // unitPrice is the full price when portion is "full"
+        fullPriceRef.current[i] = item.unitPrice;
+      }
+    });
+  }, [watchedItems.length]); // only re-run when items are added/removed
+
+  const handlePortionChange = (index: number, portion: "full" | "half") => {
+    const item = watchedItems[index];
+    if (portion === "half" && item.halfPrice !== undefined) {
+      // Remember current full price before switching
+      fullPriceRef.current[index] = item.unitPrice;
+      setValue(`items.${index}.portion`, portion);
+      setValue(`items.${index}.unitPrice`, item.halfPrice);
+    } else if (portion === "full") {
+      const storedFull = fullPriceRef.current[index];
+      setValue(`items.${index}.portion`, portion);
+      if (storedFull !== undefined) {
+        setValue(`items.${index}.unitPrice`, storedFull);
+      }
+    }
   };
 
   const handleFormSubmit = (data: SaleFormData) => {
@@ -315,41 +363,86 @@ export function SaleForm({ onSubmit, isSubmitting, onCancel, defaultValues }: Sa
 
         <div className="flex flex-col gap-2">
           {fields.map((field, index) => {
-            const qty = watchedItems[index]?.quantity ?? 1;
-            const price = watchedItems[index]?.unitPrice ?? 0;
+            const item = watchedItems[index];
+            const qty = item?.quantity ?? 1;
+            const price = item?.unitPrice ?? 0;
             const rowTotal = qty * price;
+            const hasHalf = !item?.isCustom && item?.halfPrice !== undefined;
+            const currentPortion = item?.portion ?? "full";
             return (
-              <div key={field.id} className="grid grid-cols-[1fr_80px_80px_80px_32px] gap-2 items-center">
-                <Input
-                  placeholder="Item name"
-                  {...register(`items.${index}.itemName`)}
-                  error={errors.items?.[index]?.itemName?.message}
-                  className="text-[13px]"
-                />
-                <Controller
-                  control={control}
-                  name={`items.${index}.quantity`}
-                  render={({ field: f }) => (
-                    <Stepper value={f.value} onChange={f.onChange} min={1} />
-                  )}
-                />
-                <Input
-                  type="number"
-                  placeholder="₹0"
-                  {...register(`items.${index}.unitPrice`, { valueAsNumber: true })}
-                  className="text-[13px] text-right"
-                />
-                <p className="font-mono text-[13px] font-[600] text-[#1C1410] text-right">
-                  {formatCurrency(rowTotal)}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => remove(index)}
-                  className="btn-icon text-[#C0524A] hover:bg-[rgba(192,82,74,0.12)] hover:border-[rgba(192,82,74,0.20)]"
-                  aria-label="Remove item"
-                >
-                  <Trash2 size={14} />
-                </button>
+              <div key={field.id} className="flex flex-col gap-1.5">
+                <div className="grid grid-cols-[1fr_80px_80px_80px_32px] gap-2 items-center">
+                  <Input
+                    placeholder="Item name"
+                    {...register(`items.${index}.itemName`)}
+                    error={errors.items?.[index]?.itemName?.message}
+                    className="text-[13px]"
+                  />
+                  <Controller
+                    control={control}
+                    name={`items.${index}.quantity`}
+                    render={({ field: f }) => (
+                      <Stepper value={f.value} onChange={f.onChange} min={1} />
+                    )}
+                  />
+                  <Input
+                    type="number"
+                    placeholder="₹0"
+                    {...register(`items.${index}.unitPrice`, { valueAsNumber: true })}
+                    className="text-[13px] text-right"
+                  />
+                  <Input
+                    type="number"
+                    value={rowTotal || ""}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      if (!isNaN(val) && qty > 0) {
+                        setValue(`items.${index}.unitPrice`, parseFloat((val / qty).toFixed(2)));
+                      }
+                    }}
+                    className="font-mono text-[13px] font-[600] text-right text-[#1C1410]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      delete fullPriceRef.current[index];
+                      remove(index);
+                    }}
+                    className="btn-icon text-[#C0524A] hover:bg-[rgba(192,82,74,0.12)] hover:border-[rgba(192,82,74,0.20)]"
+                    aria-label="Remove item"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+                {/* Portion toggle — only for menu items that have halfPrice */}
+                {hasHalf && (
+                  <div className="flex items-center gap-2 pl-1">
+                    <span className="text-[10px] text-[#9E8E80] uppercase tracking-wide font-[500]">Portion:</span>
+                    <div className="flex items-center glass-input p-[2px] rounded-full gap-[2px]">
+                      {(["full", "half"] as const).map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => handlePortionChange(index, p)}
+                          className={cn(
+                            "px-3 py-[4px] rounded-full text-[10px] font-[600] transition-all capitalize",
+                            currentPortion === p
+                              ? "bg-[#C8873A] text-white shadow-sm"
+                              : "text-[#9E8E80] hover:text-[#6B5D50]"
+                          )}
+                          aria-label={`Set ${p} plate`}
+                        >
+                          {p === "full" ? "Full" : "Half"}
+                        </button>
+                      ))}
+                    </div>
+                    <span className="text-[10px] text-[#9E8E80]">
+                      {currentPortion === "half"
+                        ? `₹${item.halfPrice}`
+                        : `₹${getFullPrice(index)}`}
+                    </span>
+                  </div>
+                )}
               </div>
             );
           })}

@@ -5,6 +5,7 @@ export interface SaleItem {
   quantity: number;
   unitPrice: number;
   lineTotal: number;
+  portion?: "full" | "half";
   isCustom?: boolean;
   menuItem?: string;
 }
@@ -63,7 +64,7 @@ export interface CreateSalePayload {
   customerName: string;
   customerPhone: string;
   customerAddress?: string;
-  items: { itemName: string; quantity: number; unitPrice: number; isCustom?: boolean; menuItem?: string }[];
+  items: { itemName: string; quantity: number; unitPrice: number; portion?: "full" | "half"; isCustom?: boolean; menuItem?: string }[];
   deliveryCharge?: number;
   paymentMode?: SchemaPaymentMode;
   paymentStatus: PaymentStatus;

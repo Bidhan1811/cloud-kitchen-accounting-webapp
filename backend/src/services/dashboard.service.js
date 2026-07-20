@@ -37,7 +37,7 @@ export const getDashboardSummary = async (matchStage = {}) => {
 
   return {
     ...salesData,
-    ...expData,
+    totalExpenses: expData.totalExpenditure,
     netProfit,
   };
 };
@@ -96,15 +96,15 @@ export const getTrend = async (months = 12) => {
 
   salesTrend.forEach((item) => {
     const key = `${item._id.year}-${String(item._id.month).padStart(2, "0")}`;
-    trendMap[key] = { month: key, sales: item.sales, expenditure: 0, profit: item.sales };
+    trendMap[key] = { month: key, sales: item.sales, expenses: 0, profit: item.sales };
   });
 
   expTrend.forEach((item) => {
     const key = `${item._id.year}-${String(item._id.month).padStart(2, "0")}`;
     if (!trendMap[key]) {
-      trendMap[key] = { month: key, sales: 0, expenditure: item.expenditure, profit: -item.expenditure };
+      trendMap[key] = { month: key, sales: 0, expenses: item.expenditure, profit: -item.expenditure };
     } else {
-      trendMap[key].expenditure = item.expenditure;
+      trendMap[key].expenses = item.expenditure;
       trendMap[key].profit = trendMap[key].sales - item.expenditure;
     }
   });

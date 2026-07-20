@@ -61,12 +61,26 @@ export function ItemPicker({ onSelect, onCustom }: ItemPickerProps) {
                   </div>
                   <div className="min-w-0">
                     <p className="text-[13px] font-[500] text-[#1C1410] truncate">{item.name}</p>
-                    <p className="text-[11px] text-[#9E8E80]">{item.category}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <p className="text-[11px] text-[#9E8E80]">{item.category}</p>
+                      {item.halfPrice !== undefined && (
+                        <span className="text-[9px] font-[600] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-[rgba(200,135,58,0.12)] text-[#C8873A]">
+                          Half avail.
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <span className="font-mono text-[13px] font-[600] text-[#C8873A] flex-shrink-0">
-                  {formatCurrency(item.price)}
-                </span>
+                <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+                  <span className="font-mono text-[13px] font-[600] text-[#C8873A]">
+                    {formatCurrency(item.price)}
+                  </span>
+                  {item.halfPrice !== undefined && (
+                    <span className="font-mono text-[10px] text-[#9E8E80]">
+                      ½ {formatCurrency(item.halfPrice)}
+                    </span>
+                  )}
+                </div>
               </button>
             ))}
             {/* Custom item */}

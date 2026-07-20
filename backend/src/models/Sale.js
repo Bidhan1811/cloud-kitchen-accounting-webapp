@@ -21,6 +21,13 @@ const saleItemSchema = new Schema({
     required: true,
     min: 0,
   },
+  // Snapshot of the portion chosen at the time of sale ("full" or "half").
+  // Informational only after save — pricing authority is the pre-save hook.
+  portion: {
+    type: String,
+    enum: ["full", "half"],
+    default: "full",
+  },
   isCustom: {
     type: Boolean,
     default: false,
@@ -29,6 +36,11 @@ const saleItemSchema = new Schema({
 
 const saleSchema = new Schema(
   {
+    invoiceId: {
+      type: String,
+      unique: true,
+      required: true,
+    },
     date: {
       type: Date,
       default: Date.now,
@@ -119,6 +131,12 @@ const saleSchema = new Schema(
 
 // Mongoose middleware to auto-calculate totals before saving
 saleSchema.pre("validate", function (next) {
+  if (!this.invoiceId) {
+    const timestamp = Date.now().toString().slice(-6);
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
+    this.invoiceId = `INV-${timestamp}-${random}`;
+  }
+
   if (this.items && this.items.length > 0) {
     let calculatedItemsTotal = 0;
     this.items.forEach((item) => {

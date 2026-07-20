@@ -3,6 +3,7 @@ export interface MenuItem {
   name: string;
   category: string;
   price: number;
+  halfPrice?: number;
   isActive: boolean;
   description?: string;
   createdAt: string;
@@ -21,6 +22,7 @@ export interface CreateMenuItemPayload {
   name: string;
   category: string;
   price: number;
+  halfPrice?: number;
   isActive?: boolean;
   description?: string;
 }

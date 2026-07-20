@@ -40,6 +40,9 @@ export const validateCreateSale = (data) => {
     if (item.unitPrice === undefined || item.unitPrice < 0) {
       throw new ApiError(400, "A valid unit price is required for all items");
     }
+    if (item.portion !== undefined && !["full", "half"].includes(item.portion)) {
+      throw new ApiError(400, "Item portion must be 'full' or 'half'");
+    }
   }
 
   if (!paymentStatus || !VALID_PAYMENT_STATUSES.includes(paymentStatus)) {

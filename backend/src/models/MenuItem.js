@@ -18,6 +18,13 @@ const menuItemSchema = new Schema(
       required: [true, "Price is required"],
       min: [0, "Price cannot be negative"],
     },
+    // Optional half-plate price. Only set for items that have a half-plate
+    // variant. When undefined, the item is considered full-plate only and
+    // the sale service will reject any order with portion: "half".
+    halfPrice: {
+      type: Number,
+      min: [0, "Half price cannot be negative"],
+    },
     isActive: {
       type: Boolean,
       default: true,
