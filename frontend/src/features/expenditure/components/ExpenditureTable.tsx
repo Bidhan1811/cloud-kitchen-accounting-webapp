@@ -13,6 +13,10 @@ import { formatDate } from "@/utils/formatDate";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { EXPENSE_CATEGORIES } from "@/constants/lookups";
 import type { Expenditure } from "../types/expenditure.types";
+import { MobileListCard } from "@/components/mobile/MobileListCard";
+import { MobileBottomDrawer } from "@/components/mobile/MobileBottomDrawer";
+import { useIsMobile } from "@/hooks";
+import { Button } from "@/components/ui/Button";
 
 interface ExpenditureTableProps {
   data: Expenditure[];
@@ -27,8 +31,11 @@ interface ExpenditureTableProps {
 export function ExpenditureTable({ data, isLoading, onAdd, page, totalPages, total, onPageChange }: ExpenditureTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editItem, setEditItem] = useState<Expenditure | null>(null);
+  const [viewItem, setViewItem] = useState<Expenditure | null>(null);
   const { mutateAsync: deleteExp, isPending: isDeleting } = useDeleteExpenditure();
   const { mutateAsync: updateExp, isPending: isUpdating } = useUpdateExpenditure();
+
+  const isMobile = useIsMobile();
 
   const getCategoryLabel = (val: string) =>
     EXPENSE_CATEGORIES.find((c) => c.value === val)?.label ?? val;
@@ -72,30 +79,74 @@ export function ExpenditureTable({ data, isLoading, onAdd, page, totalPages, tot
     },
   ];
 
+  const FormDrawerComponent = isMobile ? MobileBottomDrawer : Drawer;
+
   return (
     <>
-      <DataTable
-        columns={columns}
-        data={data}
-        keyExtractor={(r) => r._id}
-        isLoading={isLoading}
-        page={page}
-        totalPages={totalPages}
-        total={total}
-        limit={10}
-        onPageChange={onPageChange}
-        emptyState={
+      <div className="hidden md:block">
+        <DataTable
+          columns={columns}
+          data={data}
+          keyExtractor={(r) => r._id}
+          isLoading={isLoading}
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          limit={10}
+          onPageChange={onPageChange}
+          emptyState={
+            <EmptyState
+              icon={<Receipt size={24} />}
+              title="No expenses yet"
+              description="Record your first expense to track spending."
+              action={{ label: "+ Add Expense", onClick: onAdd }}
+            />
+          }
+        />
+      </div>
+
+      <div className="md:hidden flex flex-col gap-3 pb-[env(safe-area-inset-bottom)]">
+        {isLoading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="glass-card p-4 flex gap-3 h-[72px]">
+              <div className="skeleton h-full w-full rounded-md" />
+            </div>
+          ))
+        ) : data.length === 0 ? (
           <EmptyState
             icon={<Receipt size={24} />}
             title="No expenses yet"
-            description="Record your first expense to track spending."
+            description="Record your first expense."
             action={{ label: "+ Add Expense", onClick: onAdd }}
           />
-        }
-      />
+        ) : (
+          data.map((exp) => (
+            <MobileListCard
+              key={exp._id}
+              onClick={() => setViewItem(exp)}
+              title={exp.items}
+              subtitle={
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[11px] text-[#9E8E80]">{exp.expenseId}</span>
+                  <span className="text-[11px] text-[#9E8E80]">•</span>
+                  <span className="text-[11px] text-[#9E8E80]">{formatDate(exp.date)}</span>
+                </div>
+              }
+              trailing={
+                <div className="flex flex-col items-end gap-1.5">
+                  <span className="font-jetbrains font-bold text-[14px] text-text-primary leading-none">
+                    {formatCurrency(exp.amount)}
+                  </span>
+                  <Badge variant="pending" className="text-[10px] px-1.5 py-0">{getCategoryLabel(exp.category)}</Badge>
+                </div>
+              }
+            />
+          ))
+        )}
+      </div>
 
       {/* Edit drawer */}
-      <Drawer open={!!editItem} onClose={() => setEditItem(null)} title="Edit Expense" subtitle="Update expense details">
+      <FormDrawerComponent open={!!editItem} onClose={() => setEditItem(null)} title="Edit Expense" subtitle="Update expense details">
         {editItem && (
           <ExpenseForm
             defaultValues={{ ...editItem }}
@@ -107,7 +158,51 @@ export function ExpenditureTable({ data, isLoading, onAdd, page, totalPages, tot
             }}
           />
         )}
-      </Drawer>
+      </FormDrawerComponent>
+
+      <MobileBottomDrawer
+        open={!!viewItem}
+        onClose={() => setViewItem(null)}
+        title={viewItem?.expenseId}
+        subtitle={getCategoryLabel(viewItem?.category ?? "")}
+        footer={
+          <div className="flex gap-3">
+            <Button variant="secondary" className="flex-1" onClick={() => { setDeleteId(viewItem?._id ?? null); setViewItem(null); }}>
+              Delete
+            </Button>
+            <Button className="flex-1" onClick={() => { setEditItem(viewItem); setViewItem(null); }}>
+              Edit
+            </Button>
+          </div>
+        }
+      >
+        {viewItem && (
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-between items-center">
+              <span className="text-[#6B5D50] text-[13px]">Date</span>
+              <span className="text-[#1C1410] font-medium text-[13px]">{formatDate(viewItem.date)}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-[#6B5D50] text-[13px]">Item / Description</span>
+              <span className="text-[#1C1410] font-medium text-[14px]">{viewItem.items}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-[#6B5D50] text-[13px]">Amount</span>
+              <span className="font-jetbrains font-bold text-[16px] text-text-primary">{formatCurrency(viewItem.amount)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-[#6B5D50] text-[13px]">Payment Mode</span>
+              <span className="text-[#1C1410] font-medium uppercase text-[13px]">{viewItem.paymentMode}</span>
+            </div>
+            {viewItem.notes && (
+              <div className="mt-2">
+                <p className="text-[12px] uppercase tracking-wide text-[#9E8E80] font-[600] mb-1">Notes</p>
+                <p className="text-[14px] text-[#1C1410]">{viewItem.notes}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </MobileBottomDrawer>
 
       <ConfirmDialog
         open={!!deleteId}

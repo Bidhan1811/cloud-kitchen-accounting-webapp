@@ -572,3 +572,7 @@ body {
   color: var(--text-primary);
   animation: scaleIn 150ms ease;
 }
+
+#main-content::-webkit-scrollbar {
+  width: 0px;
+}

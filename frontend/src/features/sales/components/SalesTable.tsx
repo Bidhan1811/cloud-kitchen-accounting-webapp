@@ -8,8 +8,10 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { formatDate } from "@/utils/formatDate";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { generateInitials, stringToColor } from "@/utils/strings";
 import { useDeleteSale } from "../hooks/useSales";
 import type { Sale } from "../types/sale.types";
+import { MobileListCard } from "@/components/mobile/MobileListCard";
 
 interface SalesTableProps {
   data: Sale[];
@@ -102,26 +104,81 @@ export function SalesTable({
 
   return (
     <>
-      <DataTable
-        columns={columns}
-        data={data}
-        keyExtractor={(row) => row._id}
-        isLoading={isLoading}
-        onRowClick={onView}
-        page={page}
-        totalPages={totalPages}
-        total={total}
-        limit={10}
-        onPageChange={onPageChange}
-        emptyState={
+      {/* Desktop Table — UNCHANGED */}
+      <div className="hidden md:block">
+        <DataTable
+          columns={columns}
+          data={data}
+          keyExtractor={(row) => row._id}
+          isLoading={isLoading}
+          onRowClick={onView}
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          limit={10}
+          onPageChange={onPageChange}
+          emptyState={
+            <EmptyState
+              icon={<FileText size={24} />}
+              title="No sales yet"
+              description="Record your first sale to see it appear here."
+              action={{ label: "+ Add Sale", onClick: onAdd }}
+            />
+          }
+        />
+      </div>
+
+      {/* Mobile List */}
+      <div className="md:hidden flex flex-col gap-3 pb-[env(safe-area-inset-bottom)]">
+        {isLoading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="glass-card p-4 flex gap-3 h-[72px]">
+              <div className="skeleton h-full w-full rounded-md" />
+            </div>
+          ))
+        ) : data.length === 0 ? (
           <EmptyState
             icon={<FileText size={24} />}
             title="No sales yet"
-            description="Record your first sale to see it appear here."
+            description="Record your first sale."
             action={{ label: "+ Add Sale", onClick: onAdd }}
           />
-        }
-      />
+        ) : (
+          data.map((sale) => {
+            const name = sale.customer?.name ?? sale.customerName ?? "Walk-in";
+            return (
+              <MobileListCard
+                key={sale._id}
+                onClick={() => onView(sale)}
+                avatar={
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-bold text-white flex-shrink-0"
+                    style={{ background: stringToColor(name) }}
+                  >
+                    {generateInitials(name)}
+                  </div>
+                }
+                title={name}
+                subtitle={
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[11px] text-[#9E8E80]">{sale.invoiceId}</span>
+                    <span className="text-[11px] text-[#9E8E80]">•</span>
+                    <span className="text-[11px] text-[#9E8E80]">{formatDate(sale.date)}</span>
+                  </div>
+                }
+                trailing={
+                  <div className="flex flex-col items-end gap-1.5">
+                    <span className="font-jetbrains font-bold text-[14px] text-text-primary leading-none">
+                      {formatCurrency(sale.grandTotal)}
+                    </span>
+                    <StatusBadge status={sale.paymentStatus} />
+                  </div>
+                }
+              />
+            );
+          })
+        )}
+      </div>
 
       <ConfirmDialog
         open={!!deleteId}

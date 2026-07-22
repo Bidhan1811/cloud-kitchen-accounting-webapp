@@ -2,54 +2,33 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { Printer, Pencil, X } from "lucide-react";
+import { Printer, Pencil, X, Trash2 } from "lucide-react";
 import { StatusBadge } from "@/components/ui/Badge";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { formatDateTime } from "@/utils/formatDate";
 import { generateInitials, stringToColor } from "@/utils/strings";
 import type { Sale } from "../types/sale.types";
+import { useIsMobile } from "@/hooks";
+import { MobileBottomDrawer } from "@/components/mobile/MobileBottomDrawer";
 
 interface SaleDetailProps {
   sale: Sale;
   onClose: () => void;
   onEdit: () => void;
+  /** Optional — when provided, a Delete button appears alongside Edit (mobile footer). */
+  onDelete?: () => void;
 }
 
-export function SaleDetail({ sale, onClose, onEdit }: SaleDetailProps) {
+export function SaleDetail({ sale, onClose, onEdit, onDelete }: SaleDetailProps) {
   const customerName = sale.customer?.name ?? sale.customerName ?? "Walk-in Customer";
   const customerPhone = sale.customer?.phone ?? sale.customerPhone;
 
-  return (
-    <motion.div
-      className="glass-modal fixed top-4 right-4 bottom-4 w-[min(520px,calc(100vw-32px))] z-[51] flex flex-col overflow-hidden"
-      initial={{ x: "calc(100% + 32px)", opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: "calc(100% + 32px)", opacity: 0 }}
-      transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-    >
-      {/* Header */}
-      <div className="px-7 pt-7 pb-4 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <span className="font-mono text-[14px] font-[600] text-[#C8873A]">{sale.invoiceId}</span>
-          <StatusBadge status={sale.paymentStatus} />
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="btn-icon" onClick={() => window.print()} aria-label="Print invoice">
-            <Printer size={16} />
-          </button>
-          <button className="btn-icon" onClick={onEdit} aria-label="Edit sale">
-            <Pencil size={16} />
-          </button>
-          <button className="btn-icon" onClick={onClose} aria-label="Close">
-            <X size={16} />
-          </button>
-        </div>
-      </div>
+  const isMobile = useIsMobile();
 
-      <div className="h-px bg-[rgba(255,255,255,0.40)] mx-7" />
-
+  const content = (
+    <>
       {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto px-7 py-5 flex flex-col gap-5">
+      <div className="flex-1 overflow-y-auto px-7 py-5 flex flex-col gap-5 max-md:px-0">
         {/* Customer info */}
         <div className="flex items-center gap-4">
           <div
@@ -91,7 +70,7 @@ export function SaleDetail({ sale, onClose, onEdit }: SaleDetailProps) {
               <span>Item</span><span className="text-center">Qty</span><span className="text-right">Price</span><span className="text-right">Total</span>
             </div>
             {sale.items.map((item, i) => (
-              <div key={i} className="grid grid-cols-[1fr_40px_80px_80px] items-center px-3 py-2.5 rounded-[12px] hover:bg-[rgba(255,255,255,0.20)] transition-colors">
+              <div key={i} className="grid grid-cols-[1fr_40px_80px_80px] items-center px-3 py-2.5 rounded-[12px] hover:bg-[rgba(255,255,255,0.20)] transition-colors max-md:px-1 max-md:py-2">
                 <span className="text-[13px] text-[#1C1410]">{item.itemName}</span>
                 <span className="text-[12px] text-[#9E8E80] text-center">{item.quantity}</span>
                 <span className="font-mono text-[12px] text-right text-[#6B5D50]">{formatCurrency(item.unitPrice)}</span>
@@ -164,6 +143,70 @@ export function SaleDetail({ sale, onClose, onEdit }: SaleDetailProps) {
           </div>
         )}
       </div>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <MobileBottomDrawer
+        open={true}
+        onClose={onClose}
+        title={sale.invoiceId}
+        subtitle={`Status: ${sale.paymentStatus}`}
+        footer={
+          <div className="flex gap-3">
+            {onDelete && (
+              <button
+                onClick={onDelete}
+                className="flex-1 py-3 bg-white/60 border border-[rgba(192,82,74,0.25)] text-[#C0524A] rounded-xl font-medium text-sm flex items-center justify-center gap-2"
+              >
+                <Trash2 size={16} /> Delete
+              </button>
+            )}
+            <button
+              onClick={onEdit}
+              className="flex-1 py-3 bg-[#8B5E34] text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2"
+            >
+              <Pencil size={16} /> Edit Sale
+            </button>
+          </div>
+        }
+      >
+        {content}
+      </MobileBottomDrawer>
+    );
+  }
+
+  return (
+    <motion.div
+      className="glass-modal fixed top-4 right-4 bottom-4 w-[min(520px,calc(100vw-32px))] z-[51] flex flex-col overflow-hidden"
+      initial={{ x: "calc(100% + 32px)", opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: "calc(100% + 32px)", opacity: 0 }}
+      transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+    >
+      {/* Header — unchanged, no Delete button here (desktop untouched) */}
+      <div className="px-7 pt-7 pb-4 flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-[14px] font-[600] text-[#C8873A]">{sale.invoiceId}</span>
+          <StatusBadge status={sale.paymentStatus} />
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="btn-icon" onClick={() => window.print()} aria-label="Print invoice">
+            <Printer size={16} />
+          </button>
+          <button className="btn-icon" onClick={onEdit} aria-label="Edit sale">
+            <Pencil size={16} />
+          </button>
+          <button className="btn-icon" onClick={onClose} aria-label="Close">
+            <X size={16} />
+          </button>
+        </div>
+      </div>
+
+      <div className="h-px bg-[rgba(255,255,255,0.40)] mx-7" />
+
+      {content}
     </motion.div>
   );
 }

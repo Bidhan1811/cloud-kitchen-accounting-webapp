@@ -19,10 +19,14 @@ import {
   useMenuItems, useCreateMenuItem, useUpdateMenuItem,
   useToggleMenuItemStatus, useDeleteMenuItem
 } from "@/features/menu/hooks/useMenuItems";
-import { useDebounce } from "@/hooks";
+import { useDebounce, useIsMobile } from "@/hooks";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { MENU_CATEGORIES } from "@/constants/lookups";
 import { cn } from "@/utils/cn";
+import { MobileListCard } from "@/components/mobile/MobileListCard";
+import { MobileSectionAccordion } from "@/components/mobile/MobileSectionAccordion";
+import { MobileSearchFilterBar } from "@/components/mobile/MobileSearchFilterBar";
+import { MobileBottomDrawer } from "@/components/mobile/MobileBottomDrawer";
 import type { MenuItem } from "@/features/menu/types/menu.types";
 
 const menuSchema = z.object({
@@ -81,6 +85,7 @@ function MenuItemForm({ onSubmit, isSubmitting, onCancel, defaultValues }: {
 export default function MenuPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editItem, setEditItem] = useState<MenuItem | null>(null);
+  const [viewItem, setViewItem] = useState<MenuItem | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
@@ -93,10 +98,21 @@ export default function MenuPage() {
   const { mutateAsync: toggleStatus } = useToggleMenuItemStatus();
   const { mutateAsync: deleteItem, isPending: isDeleting } = useDeleteMenuItem();
 
+  const isMobile = useIsMobile();
+
   const items = data?.data ?? [];
   const pagination = data?.pagination;
 
   const getCatLabel = (v: string) => MENU_CATEGORIES.find((c) => c.value === v)?.label ?? v;
+
+  const groupedItems = React.useMemo(() => {
+    const groups: Record<string, MenuItem[]> = {};
+    for (const item of items) {
+      if (!groups[item.category]) groups[item.category] = [];
+      groups[item.category].push(item);
+    }
+    return groups;
+  }, [items]);
 
   const columns: Column<MenuItem>[] = [
     {
@@ -157,6 +173,8 @@ export default function MenuPage() {
     },
   ];
 
+  const FormDrawerComponent = isMobile ? MobileBottomDrawer : Drawer;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -169,7 +187,7 @@ export default function MenuPage() {
         action={<Button leftIcon={<Plus size={16} />} onClick={() => { setEditItem(null); setDrawerOpen(true); }}>Add Item</Button>}
       />
 
-      <div className="flex flex-wrap items-center gap-2 mb-5">
+      <div className="hidden md:flex flex-wrap items-center gap-2 mb-5">
         <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search items..." className="flex-1 min-w-[200px]" />
         <select value={category} onChange={(e) => { setCategory(e.target.value); setPage(1); }} className="input h-[44px] w-auto min-w-[150px]">
           <option value="">All Categories</option>
@@ -177,7 +195,31 @@ export default function MenuPage() {
         </select>
       </div>
 
-      <div className="glass-card p-1 overflow-hidden">
+      <div className="md:hidden mb-4 flex flex-col gap-3">
+        <MobileSearchFilterBar
+          searchValue={search}
+          onSearchChange={(v) => { setSearch(v); setPage(1); }}
+        />
+        <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-hide -mx-4 px-4">
+          <button
+            className={cn("whitespace-nowrap px-4 py-2 rounded-full text-[13px] font-medium border transition-colors", category === "" ? "bg-[#C8873A] text-white border-[#C8873A]" : "bg-glass-input text-text-secondary border-glass-border")}
+            onClick={() => { setCategory(""); setPage(1); }}
+          >
+            All Categories
+          </button>
+          {MENU_CATEGORIES.map(c => (
+            <button
+              key={c.value}
+              className={cn("whitespace-nowrap px-4 py-2 rounded-full text-[13px] font-medium border transition-colors", category === c.value ? "bg-[#C8873A] text-white border-[#C8873A]" : "bg-glass-input text-text-secondary border-glass-border")}
+              onClick={() => { setCategory(c.value); setPage(1); }}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="glass-card p-1 overflow-hidden hidden md:block">
         <DataTable
           columns={columns} data={items} keyExtractor={(r) => r._id}
           isLoading={isLoading} page={page}
@@ -192,7 +234,81 @@ export default function MenuPage() {
         />
       </div>
 
-      <Drawer
+      <div className="md:hidden flex flex-col pb-[env(safe-area-inset-bottom)]">
+        {isLoading ? (
+          <div className="glass-card p-4 h-[72px] flex mb-3"><div className="skeleton h-full w-full rounded-md" /></div>
+        ) : items.length === 0 ? (
+          <EmptyState icon={<UtensilsCrossed size={24} />} title="No menu items"
+            description="No items found."
+            action={{ label: "+ Add Item", onClick: () => setDrawerOpen(true) }}
+          />
+        ) : (
+          <>
+            {Object.entries(groupedItems).map(([catValue, catItems]) => (
+              <MobileSectionAccordion key={catValue} title={getCatLabel(catValue)} count={catItems.length}>
+                {catItems.map((item) => (
+                  <MobileListCard
+                    key={item._id}
+                    onClick={() => setViewItem(item)}
+                    avatar={<div className="w-10 h-10 rounded-full bg-[#C8873A]/10 flex items-center justify-center text-[16px]">🍽️</div>}
+                    title={item.name}
+                    subtitle={item.description ?? "No description"}
+                    trailing={
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="font-jetbrains font-bold text-[14px]">{formatCurrency(item.price)}</span>
+                        {category === "" && (
+                          <span className="text-[10px] bg-black/5 px-2 py-0.5 rounded-full text-text-secondary">{getCatLabel(item.category)}</span>
+                        )}
+                      </div>
+                    }
+                  />
+                ))}
+              </MobileSectionAccordion>
+            ))}
+
+            {/* Pagination — shares the same page/pagination state as the desktop
+                DataTable, so it just pages through the same server results.
+                A page can contain items from several categories at once (e.g.
+                under "All Categories"), which is why this sits below every
+                accordion group rather than inside a single category's list. */}
+            {(pagination?.totalPages ?? 1) > 1 && (
+              <div className="flex items-center justify-between mt-4 px-1">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className={cn(
+                    "px-4 py-2 rounded-full text-[13px] font-medium border transition-colors",
+                    page <= 1
+                      ? "text-text-tertiary border-glass-border opacity-50"
+                      : "text-[#C8873A] border-[#C8873A]/40 bg-glass-input"
+                  )}
+                >
+                  Previous
+                </button>
+                <span className="text-[12px] text-text-secondary">
+                  Page {page} of {pagination?.totalPages ?? 1}
+                </span>
+                <button
+                  type="button"
+                  disabled={page >= (pagination?.totalPages ?? 1)}
+                  onClick={() => setPage((p) => Math.min(pagination?.totalPages ?? 1, p + 1))}
+                  className={cn(
+                    "px-4 py-2 rounded-full text-[13px] font-medium border transition-colors",
+                    page >= (pagination?.totalPages ?? 1)
+                      ? "text-text-tertiary border-glass-border opacity-50"
+                      : "text-[#C8873A] border-[#C8873A]/40 bg-glass-input"
+                  )}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <FormDrawerComponent
         open={drawerOpen} onClose={() => { setDrawerOpen(false); setEditItem(null); }}
         title={editItem ? "Edit Menu Item" : "Add Menu Item"}
         subtitle="Manage your kitchen offerings"
@@ -207,7 +323,49 @@ export default function MenuPage() {
             setDrawerOpen(false); setEditItem(null);
           }}
         />
-      </Drawer>
+      </FormDrawerComponent>
+
+      <MobileBottomDrawer
+        open={!!viewItem}
+        onClose={() => setViewItem(null)}
+        title={viewItem?.name}
+        subtitle={getCatLabel(viewItem?.category ?? "")}
+        footer={
+          <div className="flex gap-3">
+            <Button variant="secondary" className="flex-1" onClick={() => { setDeleteId(viewItem?._id ?? null); setViewItem(null); }}>
+              Delete
+            </Button>
+            <Button className="flex-1" onClick={() => { setEditItem(viewItem); setDrawerOpen(true); setViewItem(null); }}>
+              Edit
+            </Button>
+          </div>
+        }
+      >
+        {viewItem && (
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-between items-center">
+              <span className="text-[#6B5D50] text-[13px]">Full Price</span>
+              <span className="font-jetbrains font-bold text-[15px]">{formatCurrency(viewItem.price)}</span>
+            </div>
+            {viewItem.halfPrice !== undefined && (
+              <div className="flex justify-between items-center">
+                <span className="text-[#6B5D50] text-[13px]">Half Price</span>
+                <span className="font-jetbrains font-bold text-[15px]">{formatCurrency(viewItem.halfPrice)}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center">
+              <span className="text-[#6B5D50] text-[13px]">Status</span>
+              <StatusBadge status={viewItem.isActive ? "active" : "inactive"} />
+            </div>
+            {viewItem.description && (
+              <div className="mt-2">
+                <p className="text-[12px] uppercase tracking-wide text-[#9E8E80] font-[600] mb-1">Description</p>
+                <p className="text-[14px] text-[#1C1410]">{viewItem.description}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </MobileBottomDrawer>
 
       <ConfirmDialog
         open={!!deleteId} onClose={() => setDeleteId(null)}
