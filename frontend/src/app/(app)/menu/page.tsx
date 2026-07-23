@@ -28,6 +28,8 @@ import { MobileSectionAccordion } from "@/components/mobile/MobileSectionAccordi
 import { MobileSearchFilterBar } from "@/components/mobile/MobileSearchFilterBar";
 import { MobileBottomDrawer } from "@/components/mobile/MobileBottomDrawer";
 import type { MenuItem } from "@/features/menu/types/menu.types";
+import { VoiceMicButton } from "@/features/voice/components/VoiceMicButton";
+import type { VoiceParseResult } from "@/features/voice/services/voice.service";
 
 const menuSchema = z.object({
   name: z.string().min(2, "Name required"),
@@ -37,6 +39,14 @@ const menuSchema = z.object({
   description: z.string().optional(),
 });
 type MenuFormData = z.infer<typeof menuSchema>;
+
+interface VoiceMenuExtract {
+  name?: string | null;
+  category?: string | null;
+  price?: number | null;
+  halfPrice?: number | null;
+  description?: string | null;
+}
 
 function MenuItemForm({ onSubmit, isSubmitting, onCancel, defaultValues }: {
   onSubmit: (d: MenuFormData) => void;
@@ -92,6 +102,9 @@ export default function MenuPage() {
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebounce(search, 300);
 
+  // Voice draft — maps 1:1 onto MenuItemForm's fields already.
+  const [voiceDraft, setVoiceDraft] = useState<{ defaultValues: VoiceMenuExtract; transcript: string } | null>(null);
+
   const { data, isLoading } = useMenuItems({ search: debouncedSearch, category, activeOnly: false, page, limit: 10 });
   const { mutateAsync: createItem, isPending: isCreating } = useCreateMenuItem();
   const { mutateAsync: updateItem, isPending: isUpdating } = useUpdateMenuItem();
@@ -113,6 +126,12 @@ export default function MenuPage() {
     }
     return groups;
   }, [items]);
+
+  const handleVoiceResult = (result: VoiceParseResult<VoiceMenuExtract>) => {
+    setEditItem(null);
+    setVoiceDraft({ defaultValues: result.extracted, transcript: result.transcript });
+    setDrawerOpen(true);
+  };
 
   const columns: Column<MenuItem>[] = [
     {
@@ -145,7 +164,6 @@ export default function MenuPage() {
       header: "Actions",
       render: (row) => (
         <div className="flex items-center gap-1">
-          {/* Toggle switch */}
           <button
             type="button"
             onClick={() => toggleStatus({ id: row._id, isActive: !row.isActive })}
@@ -162,7 +180,7 @@ export default function MenuPage() {
               row.isActive ? "translate-x-[21px]" : "translate-x-[3px]"
             )} />
           </button>
-          <button className="btn-icon" onClick={() => { setEditItem(row); setDrawerOpen(true); }} aria-label="Edit">
+          <button className="btn-icon" onClick={() => { setEditItem(row); setVoiceDraft(null); setDrawerOpen(true); }} aria-label="Edit">
             <Pencil size={15} />
           </button>
           <button className="btn-icon hover:bg-[rgba(192,82,74,0.12)] hover:text-[#C0524A]" onClick={() => setDeleteId(row._id)} aria-label="Delete">
@@ -184,7 +202,14 @@ export default function MenuPage() {
       <PageHeader
         title="Menu"
         subtitle="Manage your menu items and pricing"
-        action={<Button leftIcon={<Plus size={16} />} onClick={() => { setEditItem(null); setDrawerOpen(true); }}>Add Item</Button>}
+        action={
+          <div className="flex items-center gap-2">
+            <VoiceMicButton<VoiceMenuExtract> context="menu" onResult={handleVoiceResult} />
+            <Button leftIcon={<Plus size={16} />} onClick={() => { setEditItem(null); setVoiceDraft(null); setDrawerOpen(true); }}>
+              Add Item
+            </Button>
+          </div>
+        }
       />
 
       <div className="hidden md:flex flex-wrap items-center gap-2 mb-5">
@@ -266,11 +291,6 @@ export default function MenuPage() {
               </MobileSectionAccordion>
             ))}
 
-            {/* Pagination — shares the same page/pagination state as the desktop
-                DataTable, so it just pages through the same server results.
-                A page can contain items from several categories at once (e.g.
-                under "All Categories"), which is why this sits below every
-                accordion group rather than inside a single category's list. */}
             {(pagination?.totalPages ?? 1) > 1 && (
               <div className="flex items-center justify-between mt-4 px-1">
                 <button
@@ -309,18 +329,40 @@ export default function MenuPage() {
       </div>
 
       <FormDrawerComponent
-        open={drawerOpen} onClose={() => { setDrawerOpen(false); setEditItem(null); }}
+        open={drawerOpen} onClose={() => { setDrawerOpen(false); setEditItem(null); setVoiceDraft(null); }}
         title={editItem ? "Edit Menu Item" : "Add Menu Item"}
         subtitle="Manage your kitchen offerings"
       >
+        {voiceDraft?.transcript && (
+          <div className="glass-card p-3 text-[12px] text-[#6B5D50] flex flex-col gap-1 mb-4">
+            <span className="uppercase tracking-wide text-[10px] font-[600] text-[#9E8E80]">You said</span>
+            <span className="italic">"{voiceDraft.transcript}"</span>
+            <span className="text-[11px] text-[#9E8E80] mt-1">
+              Review the fields below before saving — voice entry isn't always perfect.
+            </span>
+          </div>
+        )}
         <MenuItemForm
-          defaultValues={editItem ? { name: editItem.name, category: editItem.category, price: editItem.price, halfPrice: editItem.halfPrice, description: editItem.description } : undefined}
+          key={editItem?._id ?? (voiceDraft ? "voice" : "new")}
+          defaultValues={
+            editItem
+              ? { name: editItem.name, category: editItem.category, price: editItem.price, halfPrice: editItem.halfPrice, description: editItem.description }
+              : voiceDraft
+              ? {
+                  name: voiceDraft.defaultValues.name ?? "",
+                  category: voiceDraft.defaultValues.category ?? "",
+                  price: voiceDraft.defaultValues.price ?? undefined,
+                  halfPrice: voiceDraft.defaultValues.halfPrice ?? undefined,
+                  description: voiceDraft.defaultValues.description ?? "",
+                }
+              : undefined
+          }
           isSubmitting={editItem ? isUpdating : isCreating}
-          onCancel={() => { setDrawerOpen(false); setEditItem(null); }}
+          onCancel={() => { setDrawerOpen(false); setEditItem(null); setVoiceDraft(null); }}
           onSubmit={async (data) => {
             if (editItem) await updateItem({ id: editItem._id, payload: data });
             else await createItem(data);
-            setDrawerOpen(false); setEditItem(null);
+            setDrawerOpen(false); setEditItem(null); setVoiceDraft(null);
           }}
         />
       </FormDrawerComponent>

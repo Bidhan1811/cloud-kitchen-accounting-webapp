@@ -20,6 +20,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Input } from "@/components/ui/Input";
+import { useIsMobile } from "@/hooks";
+import { MobileListCard } from "@/components/mobile/MobileListCard";
+import { MobileBottomDrawer } from "@/components/mobile/MobileBottomDrawer";
+import { MobileSearchFilterBar } from "@/components/mobile/MobileSearchFilterBar";
+import { Phone, MapPin } from "lucide-react";
+import { VoiceMicButton } from "@/features/voice/components/VoiceMicButton";
+import type { VoiceParseResult } from "@/features/voice/services/voice.service";
 
 const customerSchema = z.object({
   name: z.string().min(2, "Name required"),
@@ -28,8 +35,27 @@ const customerSchema = z.object({
 });
 type CustomerFormData = z.infer<typeof customerSchema>;
 
-function CustomerForm({ onSubmit, isSubmitting, onCancel }: { onSubmit: (d: CustomerFormData) => void; isSubmitting?: boolean; onCancel: () => void }) {
-  const { register, handleSubmit, formState: { errors } } = useForm<CustomerFormData>({ resolver: zodResolver(customerSchema) });
+interface VoiceCustomerExtract {
+  name?: string | null;
+  phone?: string | null;
+  address?: string | null;
+}
+
+function CustomerForm({
+  onSubmit,
+  isSubmitting,
+  onCancel,
+  defaultValues,
+}: {
+  onSubmit: (d: CustomerFormData) => void;
+  isSubmitting?: boolean;
+  onCancel: () => void;
+  defaultValues?: Partial<CustomerFormData>;
+}) {
+  const { register, handleSubmit, formState: { errors } } = useForm<CustomerFormData>({
+    resolver: zodResolver(customerSchema),
+    defaultValues,
+  });
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
       <Input label="Customer Name" placeholder="Rohit Singh" {...register("name")} error={errors.name?.message} />
@@ -37,17 +63,13 @@ function CustomerForm({ onSubmit, isSubmitting, onCancel }: { onSubmit: (d: Cust
       <Input label="Address (Optional)" placeholder="Sector 15, Noida, UP" {...register("address")} />
       <div className="flex gap-3 pt-2">
         <Button variant="secondary" fullWidth type="button" onClick={onCancel}>Cancel</Button>
-        <Button fullWidth type="submit" loading={isSubmitting}>Add Customer</Button>
+        <Button fullWidth type="submit" loading={isSubmitting}>
+          {defaultValues ? "Save Changes" : "Add Customer"}
+        </Button>
       </div>
     </form>
   );
 }
-
-import { useIsMobile } from "@/hooks";
-import { MobileListCard } from "@/components/mobile/MobileListCard";
-import { MobileBottomDrawer } from "@/components/mobile/MobileBottomDrawer";
-import { MobileSearchFilterBar } from "@/components/mobile/MobileSearchFilterBar";
-import { Phone, MapPin } from "lucide-react";
 
 export default function CustomersPage() {
   const router = useRouter();
@@ -56,12 +78,20 @@ export default function CustomersPage() {
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebounce(search, 300);
 
+  // Voice draft — maps 1:1 onto CustomerForm's fields already.
+  const [voiceDraft, setVoiceDraft] = useState<{ defaultValues: VoiceCustomerExtract; transcript: string } | null>(null);
+
   const { data, isLoading } = useCustomers({ search: debouncedSearch, page, limit: 10 });
   const { mutateAsync: createCustomer, isPending } = useCreateCustomer();
   const isMobile = useIsMobile();
 
   const customers = data?.data ?? [];
   const pagination = data?.pagination;
+
+  const handleVoiceResult = (result: VoiceParseResult<VoiceCustomerExtract>) => {
+    setVoiceDraft({ defaultValues: result.extracted, transcript: result.transcript });
+    setDrawerOpen(true);
+  };
 
   const columns: Column<Customer>[] = [
     {
@@ -105,9 +135,12 @@ export default function CustomersPage() {
         title="Customers"
         subtitle="Manage your regular customers"
         action={
-          <Button leftIcon={<Plus size={16} />} onClick={() => setDrawerOpen(true)}>
-            Add Customer
-          </Button>
+          <div className="flex items-center gap-2">
+            <VoiceMicButton<VoiceCustomerExtract> context="customer" onResult={handleVoiceResult} />
+            <Button leftIcon={<Plus size={16} />} onClick={() => { setVoiceDraft(null); setDrawerOpen(true); }}>
+              Add Customer
+            </Button>
+          </div>
         }
       />
 
@@ -196,11 +229,30 @@ export default function CustomersPage() {
         )}
       </div>
 
-      <FormDrawerComponent open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Add Customer" subtitle="Create a new customer profile">
+      <FormDrawerComponent open={drawerOpen} onClose={() => { setDrawerOpen(false); setVoiceDraft(null); }} title="Add Customer" subtitle="Create a new customer profile">
+        {voiceDraft?.transcript && (
+          <div className="glass-card p-3 text-[12px] text-[#6B5D50] flex flex-col gap-1 mb-4">
+            <span className="uppercase tracking-wide text-[10px] font-[600] text-[#9E8E80]">You said</span>
+            <span className="italic">"{voiceDraft.transcript}"</span>
+            <span className="text-[11px] text-[#9E8E80] mt-1">
+              Review the fields below before saving — voice entry isn't always perfect.
+            </span>
+          </div>
+        )}
         <CustomerForm
+          key={voiceDraft ? "voice" : "new"}
+          defaultValues={
+            voiceDraft
+              ? {
+                  name: voiceDraft.defaultValues.name ?? "",
+                  phone: voiceDraft.defaultValues.phone ?? "",
+                  address: voiceDraft.defaultValues.address ?? "",
+                }
+              : undefined
+          }
           isSubmitting={isPending}
-          onCancel={() => setDrawerOpen(false)}
-          onSubmit={async (data) => { await createCustomer(data); setDrawerOpen(false); }}
+          onCancel={() => { setDrawerOpen(false); setVoiceDraft(null); }}
+          onSubmit={async (data) => { await createCustomer(data); setDrawerOpen(false); setVoiceDraft(null); }}
         />
       </FormDrawerComponent>
     </motion.div>

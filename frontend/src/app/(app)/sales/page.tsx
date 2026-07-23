@@ -14,12 +14,27 @@ import { useSales, useDeleteSale } from "@/features/sales/hooks/useSales";
 import { useDebounce } from "@/hooks";
 import type { Sale } from "@/features/sales/types/sale.types";
 import { MobileSearchFilterBar } from "@/components/mobile/MobileSearchFilterBar";
+import { VoiceMicButton } from "@/features/voice/components/VoiceMicButton";
+import type { VoiceParseResult } from "@/features/voice/services/voice.service";
+
+interface VoiceSaleExtract {
+  customerName?: string | null;
+  customerPhone?: string | null;
+  customerAddress?: string | null;
+  items: { itemName: string; quantity: number; unitPrice: number; halfPrice?: number; portion?: "full" | "half"; isCustom?: boolean; menuItem?: string }[];
+  deliveryCharge?: number | null;
+  paymentMode?: string | null;
+  paymentStatus?: "Paid" | "Unpaid" | "Partial" | null;
+  amountPaid?: number | null;
+  notes?: string | null;
+}
 
 export default function SalesPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [viewingSale, setViewingSale] = useState<Sale | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [voiceDraft, setVoiceDraft] = useState<{ defaultValues: Partial<VoiceSaleExtract>; transcript: string } | null>(null);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -52,6 +67,12 @@ export default function SalesPage() {
   const sales = data?.data ?? [];
   const pagination = data?.pagination;
 
+  const handleVoiceResult = (result: VoiceParseResult<VoiceSaleExtract>) => {
+    setSelectedSale(null);
+    setVoiceDraft({ defaultValues: result.extracted, transcript: result.transcript });
+    setDrawerOpen(true);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -62,9 +83,12 @@ export default function SalesPage() {
         title="Sales"
         subtitle="Manage your daily orders"
         action={
-          <Button leftIcon={<Plus size={16} />} onClick={() => setDrawerOpen(true)}>
-            Add Sale
-          </Button>
+          <div className="flex items-center gap-2">
+            <VoiceMicButton<VoiceSaleExtract> context="sale" onResult={handleVoiceResult} />
+            <Button leftIcon={<Plus size={16} />} onClick={() => { setSelectedSale(null); setVoiceDraft(null); setDrawerOpen(true); }}>
+              Add Sale
+            </Button>
+          </div>
         }
       />
 
@@ -93,9 +117,9 @@ export default function SalesPage() {
         <SalesTable
           data={sales}
           isLoading={isLoading}
-          onAdd={() => setDrawerOpen(true)}
+          onAdd={() => { setSelectedSale(null); setVoiceDraft(null); setDrawerOpen(true); }}
           onView={setViewingSale}
-          onEdit={(sale) => { setSelectedSale(sale); setDrawerOpen(true); }}
+          onEdit={(sale) => { setSelectedSale(sale); setVoiceDraft(null); setDrawerOpen(true); }}
           page={page}
           totalPages={pagination?.totalPages ?? 1}
           total={pagination?.total ?? 0}
@@ -103,14 +127,14 @@ export default function SalesPage() {
         />
       </div>
 
-      {/* Add/Edit Drawer */}
       <SaleDrawer
         open={drawerOpen}
         sale={selectedSale}
-        onClose={() => { setDrawerOpen(false); setSelectedSale(null); }}
+        voiceDefaultValues={voiceDraft?.defaultValues}
+        voiceTranscript={voiceDraft?.transcript}
+        onClose={() => { setDrawerOpen(false); setSelectedSale(null); setVoiceDraft(null); }}
       />
 
-      {/* Detail view */}
       <AnimatePresence>
         {viewingSale && (
           <>
@@ -121,14 +145,13 @@ export default function SalesPage() {
             <SaleDetail
               sale={viewingSale}
               onClose={() => setViewingSale(null)}
-              onEdit={() => { setSelectedSale(viewingSale); setViewingSale(null); setDrawerOpen(true); }}
+              onEdit={() => { setSelectedSale(viewingSale); setVoiceDraft(null); setViewingSale(null); setDrawerOpen(true); }}
               onDelete={() => { setDeleteId(viewingSale._id); setViewingSale(null); }}
             />
           </>
         )}
       </AnimatePresence>
 
-      {/* Delete confirmation — triggered from the detail view's Delete button */}
       <ConfirmDialog
         open={!!deleteId}
         onClose={() => setDeleteId(null)}

@@ -8,18 +8,37 @@ import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ExpenditureTable } from "@/features/expenditure/components/ExpenditureTable";
-import { ExpenseForm } from "@/features/expenditure/components/ExpenseForm";
+import { ExpenseForm, type ExpenseFormData } from "@/features/expenditure/components/ExpenseForm";
 import { useExpenditures, useCreateExpenditure } from "@/features/expenditure/hooks/useExpenditures";
 import { useDebounce, useIsMobile } from "@/hooks";
 import { EXPENSE_CATEGORIES } from "@/constants/lookups";
 import { MobileSearchFilterBar } from "@/components/mobile/MobileSearchFilterBar";
 import { MobileBottomDrawer } from "@/components/mobile/MobileBottomDrawer";
+import { VoiceMicButton } from "@/features/voice/components/VoiceMicButton";
+import type { VoiceParseResult } from "@/features/voice/services/voice.service";
+import { cn } from "@/utils/cn";
+
+interface VoiceExpenseExtract {
+  category?: string | null;
+  items?: string | null;
+  amount?: number | null;
+  paymentMode?: string | null;
+  notes?: string | null;
+}
+
+const DATE_PRESETS = [
+  { value: "today", label: "Today" },
+  { value: "week", label: "Week" },
+  { value: "month", label: "Month" },
+  { value: "all", label: "All" },
+];
 
 export default function ExpenditurePage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
+  const [datePreset, setDatePreset] = useState("month");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [minAmount, setMinAmount] = useState<number | "">("");
@@ -30,9 +49,51 @@ export default function ExpenditurePage() {
   const debouncedMaxAmount = useDebounce(maxAmount, 300);
   const isMobile = useIsMobile();
 
+  const [draftFilters, setDraftFilters] = useState({
+    category,
+    datePreset,
+    startDate,
+    endDate,
+    minAmount,
+    maxAmount,
+  });
+
+  React.useEffect(() => {
+    if (filterDrawerOpen) {
+      setDraftFilters({ category, datePreset, startDate, endDate, minAmount, maxAmount });
+    }
+  }, [filterDrawerOpen, category, datePreset, startDate, endDate, minAmount, maxAmount]);
+
+  const handleApplyFilters = () => {
+    setCategory(draftFilters.category);
+    setDatePreset(draftFilters.datePreset);
+    setStartDate(draftFilters.startDate);
+    setEndDate(draftFilters.endDate);
+    setMinAmount(draftFilters.minAmount);
+    setMaxAmount(draftFilters.maxAmount);
+    setPage(1);
+    setFilterDrawerOpen(false);
+  };
+
+  const handleClearFilters = () => {
+    setDraftFilters({ category: "", datePreset: "all", startDate: "", endDate: "", minAmount: "", maxAmount: "" });
+    setCategory("");
+    setDatePreset("all");
+    setStartDate("");
+    setEndDate("");
+    setMinAmount("");
+    setMaxAmount("");
+    setPage(1);
+    setFilterDrawerOpen(false);
+  };
+
+  // Voice draft — converted null to undefined for ExpenseForm defaultValues
+  const [voiceDraft, setVoiceDraft] = useState<{ defaultValues: Partial<ExpenseFormData>; transcript: string } | null>(null);
+
   const { data, isLoading } = useExpenditures({
     search: debouncedSearch,
     category,
+    ...(datePreset !== "all" && { datePreset }),
     startDate,
     endDate,
     minAmount: debouncedMinAmount === "" ? undefined : Number(debouncedMinAmount),
@@ -45,13 +106,28 @@ export default function ExpenditurePage() {
   const expenses = data?.data ?? [];
   const pagination = data?.pagination;
 
+  const handleVoiceResult = (result: VoiceParseResult<VoiceExpenseExtract>) => {
+    const { category, items, amount, paymentMode, notes } = result.extracted;
+    setVoiceDraft({
+      defaultValues: {
+        category: category ?? undefined,
+        items: items ?? undefined,
+        amount: amount ?? undefined,
+        paymentMode: paymentMode ?? undefined,
+        notes: notes ?? undefined,
+      },
+      transcript: result.transcript,
+    });
+    setDrawerOpen(true);
+  };
+
   const filterContent = (
     <div className="flex flex-col gap-6">
       <div>
         <label className="block text-[13px] text-[#6B5D50] mb-2 font-[500]">Category</label>
         <select
-          value={category}
-          onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+          value={draftFilters.category}
+          onChange={(e) => setDraftFilters(prev => ({ ...prev, category: e.target.value }))}
           className="input cursor-pointer"
         >
           <option value="">All Categories</option>
@@ -65,18 +141,35 @@ export default function ExpenditurePage() {
 
       <div>
         <label className="block text-[13px] text-[#6B5D50] mb-3 font-[500]">Date Range</label>
+        <div className="glass-input flex p-[4px] gap-[2px] rounded-[14px] items-center mb-4">
+          {DATE_PRESETS.map((d) => (
+            <button
+              key={d.value}
+              type="button"
+              onClick={() => setDraftFilters(prev => ({ ...prev, datePreset: d.value }))}
+              className={cn(
+                "flex-1 py-2 rounded-[10px] text-[12px] font-[500] transition-all",
+                draftFilters.datePreset === d.value
+                  ? "bg-[#C8873A] text-white shadow-[0_2px_8px_rgba(200,135,58,0.25)]"
+                  : "text-[#9E8E80] hover:text-[#6B5D50]"
+              )}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
         <div className="flex items-center gap-2">
           <input
             type="date"
-            value={startDate}
-            onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
+            value={draftFilters.startDate}
+            onChange={(e) => setDraftFilters(prev => ({ ...prev, startDate: e.target.value }))}
             className="input flex-1 text-[13px]"
           />
           <span className="text-[#9E8E80] text-[12px]">to</span>
           <input
             type="date"
-            value={endDate}
-            onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
+            value={draftFilters.endDate}
+            onChange={(e) => setDraftFilters(prev => ({ ...prev, endDate: e.target.value }))}
             className="input flex-1 text-[13px]"
           />
         </div>
@@ -90,20 +183,27 @@ export default function ExpenditurePage() {
           <input
             type="number"
             placeholder="Min ₹"
-            value={minAmount}
-            onChange={(e) => { setMinAmount(e.target.value ? Number(e.target.value) : ""); setPage(1); }}
+            value={draftFilters.minAmount}
+            onChange={(e) => setDraftFilters(prev => ({ ...prev, minAmount: e.target.value ? Number(e.target.value) : "" }))}
             className="input flex-1 text-[13px]"
           />
           <span className="text-[#9E8E80] text-[12px]">-</span>
           <input
             type="number"
             placeholder="Max ₹"
-            value={maxAmount}
-            onChange={(e) => { setMaxAmount(e.target.value ? Number(e.target.value) : ""); setPage(1); }}
+            value={draftFilters.maxAmount}
+            onChange={(e) => setDraftFilters(prev => ({ ...prev, maxAmount: e.target.value ? Number(e.target.value) : "" }))}
             className="input flex-1 text-[13px]"
           />
         </div>
       </div>
+      
+      {!isMobile && (
+        <div className="pt-2 flex gap-3">
+          <Button variant="secondary" fullWidth onClick={handleClearFilters}>Clear All</Button>
+          <Button fullWidth onClick={handleApplyFilters}>Apply Filters</Button>
+        </div>
+      )}
     </div>
   );
 
@@ -117,9 +217,12 @@ export default function ExpenditurePage() {
         title="Expenditure"
         subtitle="Track your kitchen expenses"
         action={
-          <Button leftIcon={<Plus size={16} />} onClick={() => setDrawerOpen(true)}>
-            Add Expense
-          </Button>
+          <div className="flex items-center gap-2">
+            <VoiceMicButton<VoiceExpenseExtract> context="expense" onResult={handleVoiceResult} />
+            <Button leftIcon={<Plus size={16} />} onClick={() => { setVoiceDraft(null); setDrawerOpen(true); }}>
+              Add Expense
+            </Button>
+          </div>
         }
       />
 
@@ -169,7 +272,10 @@ export default function ExpenditurePage() {
         title="Filters"
         subtitle="Refine your expenses data"
         footer={
-          <Button fullWidth onClick={() => setFilterDrawerOpen(false)}>Apply Filters</Button>
+          <div className="flex gap-3 w-full">
+            <Button variant="secondary" fullWidth onClick={handleClearFilters}>Clear All</Button>
+            <Button fullWidth onClick={handleApplyFilters}>Apply</Button>
+          </div>
         }
       >
         {filterContent}
@@ -180,7 +286,7 @@ export default function ExpenditurePage() {
         <ExpenditureTable
           data={expenses}
           isLoading={isLoading}
-          onAdd={() => setDrawerOpen(true)}
+          onAdd={() => { setVoiceDraft(null); setDrawerOpen(true); }}
           page={page}
           totalPages={pagination?.totalPages ?? 1}
           total={pagination?.total ?? 0}
@@ -192,16 +298,28 @@ export default function ExpenditurePage() {
       {!isMobile && (
         <Drawer
           open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
+          onClose={() => { setDrawerOpen(false); setVoiceDraft(null); }}
           title="New Expense"
           subtitle="Record a kitchen expense"
         >
+          {voiceDraft?.transcript && (
+            <div className="glass-card p-3 text-[12px] text-[#6B5D50] flex flex-col gap-1 mb-4">
+              <span className="uppercase tracking-wide text-[10px] font-[600] text-[#9E8E80]">You said</span>
+              <span className="italic">"{voiceDraft.transcript}"</span>
+              <span className="text-[11px] text-[#9E8E80] mt-1">
+                Review the fields below before saving — voice entry isn't always perfect.
+              </span>
+            </div>
+          )}
           <ExpenseForm
+            key={voiceDraft ? "voice" : "new"}
+            defaultValues={voiceDraft?.defaultValues}
             isSubmitting={isPending}
-            onCancel={() => setDrawerOpen(false)}
+            onCancel={() => { setDrawerOpen(false); setVoiceDraft(null); }}
             onSubmit={async (data) => {
               await createExpense(data as Parameters<typeof createExpense>[0]);
               setDrawerOpen(false);
+              setVoiceDraft(null);
             }}
           />
         </Drawer>
@@ -210,16 +328,28 @@ export default function ExpenditurePage() {
       {/* Mobile Add Expense drawer */}
       <MobileBottomDrawer
         open={isMobile && drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+        onClose={() => { setDrawerOpen(false); setVoiceDraft(null); }}
         title="New Expense"
         subtitle="Record a kitchen expense"
       >
+        {voiceDraft?.transcript && (
+          <div className="glass-card p-3 text-[12px] text-[#6B5D50] flex flex-col gap-1 mb-4">
+            <span className="uppercase tracking-wide text-[10px] font-[600] text-[#9E8E80]">You said</span>
+            <span className="italic">"{voiceDraft.transcript}"</span>
+            <span className="text-[11px] text-[#9E8E80] mt-1">
+              Review the fields below before saving — voice entry isn't always perfect.
+            </span>
+          </div>
+        )}
         <ExpenseForm
+          key={voiceDraft ? "voice" : "new"}
+          defaultValues={voiceDraft?.defaultValues}
           isSubmitting={isPending}
-          onCancel={() => setDrawerOpen(false)}
+          onCancel={() => { setDrawerOpen(false); setVoiceDraft(null); }}
           onSubmit={async (data) => {
             await createExpense(data as Parameters<typeof createExpense>[0]);
             setDrawerOpen(false);
+            setVoiceDraft(null);
           }}
         />
       </MobileBottomDrawer>

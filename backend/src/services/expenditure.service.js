@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 export const getExpenditures = async ({
   startDate,
   endDate,
+  datePreset,
   category,
   minAmount,
   maxAmount,
@@ -12,7 +13,24 @@ export const getExpenditures = async ({
 }) => {
   const query = {};
 
-  if (startDate && endDate) {
+  if (datePreset && datePreset !== "all") {
+    const now = new Date();
+    if (datePreset === "today") {
+      const startOfDay = new Date(now);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(now);
+      endOfDay.setHours(23, 59, 59, 999);
+      query.date = { $gte: startOfDay, $lte: endOfDay };
+    } else if (datePreset === "week") {
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+      query.date = { $gte: startOfWeek };
+    } else if (datePreset === "month") {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      query.date = { $gte: startOfMonth };
+    }
+  } else if (startDate && endDate) {
     query.date = { $gte: new Date(startDate), $lte: new Date(endDate) };
   } else if (startDate) {
     query.date = { $gte: new Date(startDate) };

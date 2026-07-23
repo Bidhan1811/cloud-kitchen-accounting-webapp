@@ -18,7 +18,7 @@ const expenseSchema = z.object({
   notes: z.string().optional(),
 });
 
-type ExpenseFormData = z.infer<typeof expenseSchema>;
+export type ExpenseFormData = z.infer<typeof expenseSchema>;
 
 interface ExpenseFormProps {
   onSubmit: (data: ExpenseFormData) => void;

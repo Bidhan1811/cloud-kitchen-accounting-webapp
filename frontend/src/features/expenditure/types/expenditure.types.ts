@@ -15,6 +15,7 @@ export interface Expenditure {
 export interface ExpenditureFilters {
   search?: string;
   category?: string;
+  datePreset?: string;
   startDate?: string;
   endDate?: string;
   minAmount?: number;

@@ -352,7 +352,7 @@ export function SaleForm({ onSubmit, isSubmitting, onCancel, defaultValues }: Sa
         </div>
 
         {fields.length > 0 && (
-          <div className="grid grid-cols-[1fr_80px_80px_80px_32px] gap-2 mb-2">
+          <div className="hidden md:grid grid-cols-[1fr_90px_80px_80px_32px] gap-2 mb-2">
             <p className="text-[10px] uppercase tracking-wide text-[#9E8E80] font-[500]">Item</p>
             <p className="text-[10px] uppercase tracking-wide text-[#9E8E80] font-[500] text-center">Qty</p>
             <p className="text-[10px] uppercase tracking-wide text-[#9E8E80] font-[500] text-right">Price</p>
@@ -370,49 +370,73 @@ export function SaleForm({ onSubmit, isSubmitting, onCancel, defaultValues }: Sa
             const hasHalf = !item?.isCustom && item?.halfPrice !== undefined;
             const currentPortion = item?.portion ?? "full";
             return (
-              <div key={field.id} className="flex flex-col gap-1.5">
-                <div className="grid grid-cols-[1fr_80px_80px_80px_32px] gap-2 items-center">
+              <div key={field.id} className="flex flex-col gap-1.5 pb-2 md:pb-0 border-b border-[rgba(0,0,0,0.04)] md:border-b-0 last:border-b-0">
+                <div className="grid grid-cols-[1fr_32px] md:grid-cols-[1fr_90px_80px_80px_32px] gap-1.5 md:gap-2 items-center">
                   <Input
                     placeholder="Item name"
                     {...register(`items.${index}.itemName`)}
                     error={errors.items?.[index]?.itemName?.message}
-                    className="text-[13px]"
+                    className="text-[13px] !min-h-[36px] py-1.5"
                   />
-                  <Controller
-                    control={control}
-                    name={`items.${index}.quantity`}
-                    render={({ field: f }) => (
-                      <Stepper value={f.value} onChange={f.onChange} min={1} />
-                    )}
-                  />
-                  <Input
-                    type="number"
-                    placeholder="₹0"
-                    {...register(`items.${index}.unitPrice`, { valueAsNumber: true })}
-                    className="text-[13px] text-right"
-                  />
-                  <Input
-                    type="number"
-                    value={rowTotal || ""}
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value);
-                      if (!isNaN(val) && qty > 0) {
-                        setValue(`items.${index}.unitPrice`, parseFloat((val / qty).toFixed(2)));
-                      }
-                    }}
-                    className="font-mono text-[13px] font-[600] text-right text-[#1C1410]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      delete fullPriceRef.current[index];
-                      remove(index);
-                    }}
-                    className="btn-icon text-[#C0524A] hover:bg-[rgba(192,82,74,0.12)] hover:border-[rgba(192,82,74,0.20)]"
-                    aria-label="Remove item"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  
+                  {/* Mobile delete button */}
+                  <div className="md:hidden flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        delete fullPriceRef.current[index];
+                        remove(index);
+                      }}
+                      className="btn-icon text-[#C0524A] hover:bg-[rgba(192,82,74,0.12)] hover:border-[rgba(192,82,74,0.20)] w-8 h-8"
+                      aria-label="Remove item"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+
+                  <div className="col-span-2 md:col-span-1 md:contents grid grid-cols-[90px_1fr_1fr] gap-1.5 w-full items-center">
+                    <Controller
+                      control={control}
+                      name={`items.${index}.quantity`}
+                      render={({ field: f }) => (
+                        <div className="scale-[0.90] origin-left w-full max-w-[104px]">
+                          <Stepper value={f.value} onChange={f.onChange} min={1} />
+                        </div>
+                      )}
+                    />
+                    <Input
+                      type="number"
+                      placeholder="₹0"
+                      {...register(`items.${index}.unitPrice`, { valueAsNumber: true })}
+                      className="text-[13px] text-right !min-h-[36px] py-1.5"
+                    />
+                    <Input
+                      type="number"
+                      value={rowTotal || ""}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val) && qty > 0) {
+                          setValue(`items.${index}.unitPrice`, parseFloat((val / qty).toFixed(2)));
+                        }
+                      }}
+                      className="font-mono text-[13px] font-[600] text-right text-[#1C1410] !min-h-[36px] py-1.5"
+                    />
+                  </div>
+                  
+                  {/* Desktop delete button */}
+                  <div className="hidden md:flex items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        delete fullPriceRef.current[index];
+                        remove(index);
+                      }}
+                      className="btn-icon text-[#C0524A] hover:bg-[rgba(192,82,74,0.12)] hover:border-[rgba(192,82,74,0.20)]"
+                      aria-label="Remove item"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
                 {/* Portion toggle — only for menu items that have halfPrice */}
                 {hasHalf && (
