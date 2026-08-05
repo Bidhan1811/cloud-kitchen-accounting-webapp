@@ -4,17 +4,26 @@ import { MenuItem } from "../models/MenuItem.js";
 import { ApiError } from "../utils/ApiError.js";
 
 export const getSales = async ({
+  search,
+  status,
+  paymentMode,
   startDate,
   endDate,
   datePreset,
-  customerName,
-  itemName,
-  paymentStatus,
-  paymentMode,
+  minAmount,
+  maxAmount,
   page = 1,
   limit = 20,
 }) => {
   const query = {};
+
+  if (search) {
+    query.$or = [
+      { customerName: { $regex: search, $options: "i" } },
+      { invoiceId: { $regex: search, $options: "i" } },
+      { "items.itemName": { $regex: search, $options: "i" } },
+    ];
+  }
 
   if (datePreset && datePreset !== "all") {
     const now = new Date();
@@ -41,20 +50,20 @@ export const getSales = async ({
     query.date = { $lte: new Date(endDate) };
   }
 
-  if (customerName) {
-    query.customerName = { $regex: customerName, $options: "i" };
+  if (status) {
+    const formattedStatus = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+    query.paymentStatus = formattedStatus;
   }
 
-  if (itemName) {
-    query["items.itemName"] = { $regex: itemName, $options: "i" };
+  if (paymentMode) {
+    const formattedMode = paymentMode.charAt(0).toUpperCase() + paymentMode.slice(1).toLowerCase();
+    query.paymentMode = formattedMode === "Upi" ? "UPI" : formattedMode;
   }
 
-  if (paymentStatus && paymentStatus !== "All") {
-    query.paymentStatus = paymentStatus;
-  }
-
-  if (paymentMode && paymentMode !== "All") {
-    query.paymentMode = paymentMode;
+  if (minAmount !== undefined || maxAmount !== undefined) {
+    query.grandTotal = {};
+    if (minAmount !== undefined) query.grandTotal.$gte = Number(minAmount);
+    if (maxAmount !== undefined) query.grandTotal.$lte = Number(maxAmount);
   }
 
   const skip = (parseInt(page) - 1) * parseInt(limit);

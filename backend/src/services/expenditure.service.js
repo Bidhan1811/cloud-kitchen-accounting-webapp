@@ -2,6 +2,7 @@ import { Expenditure } from "../models/Expenditure.js";
 import { ApiError } from "../utils/ApiError.js";
 
 export const getExpenditures = async ({
+  search,
   startDate,
   endDate,
   datePreset,
@@ -12,6 +13,14 @@ export const getExpenditures = async ({
   limit = 20,
 }) => {
   const query = {};
+
+  if (search) {
+    query.$or = [
+      { expenseId: { $regex: search, $options: "i" } },
+      { items: { $regex: search, $options: "i" } },
+      { notes: { $regex: search, $options: "i" } },
+    ];
+  }
 
   if (datePreset && datePreset !== "all") {
     const now = new Date();
