@@ -54,6 +54,8 @@
 /* ─── Reset & Base ──────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
+  /* Eliminate 300ms tap delay on mobile without disabling native scroll */
+  touch-action: manipulation;
 }
 
 html, body {
@@ -82,8 +84,11 @@ body {
   background-size: cover;
   background-position: center;
   filter: blur(12px) brightness(0.85) saturate(1.1);
-  transform: scale(1.1);
+  transform: scale(1.1) translateZ(0);
   pointer-events: none;
+  /* Promote to its own GPU compositing layer so the blur never re-paints on scroll */
+  will-change: transform;
+  contain: strict;
 }
 
 .bg-overlay {
@@ -111,6 +116,8 @@ body {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-panel);
+  /* GPU-promote the fixed sidebar to its own layer to prevent scroll repaints */
+  transform: translateZ(0);
 }
 
 .glass-card {
@@ -120,6 +127,8 @@ body {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
+  /* Limit layout recalculation scope — especially helpful with many cards on screen */
+  contain: layout style;
 }
 
 .glass-input {
@@ -137,6 +146,8 @@ body {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-modal);
+  /* GPU-promote modals/drawers so backdrop-filter doesn't trigger full-page repaints */
+  transform: translateZ(0);
 }
 
 /* ─── Navigation Items ──────────────────────────────────────────── */
@@ -344,7 +355,7 @@ body {
 }
 
 .data-table tbody tr {
-  transition: background 150ms ease;
+  transition: background-color 120ms ease;
 }
 
 .data-table tbody tr:hover {
@@ -459,7 +470,10 @@ body {
   box-shadow: var(--shadow-modal);
   padding: 28px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   animation: slideInRight 250ms cubic-bezier(0.32, 0.72, 0, 1);
+  /* GPU-accelerate the slide animation */
+  will-change: transform;
 }
 
 @media (max-width: 640px) {
@@ -472,6 +486,8 @@ body {
     height: 92dvh;
     border-radius: 28px 28px 0 0;
     animation: slideInUp 260ms cubic-bezier(0.32, 0.72, 0, 1);
+    /* Momentum scroll on iOS */
+    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -575,4 +591,10 @@ body {
 
 #main-content::-webkit-scrollbar {
   width: 0px;
+}
+
+/* ─── Main Content Scroll Smoothness ─────────────────────────────── */
+#main-content {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
 }

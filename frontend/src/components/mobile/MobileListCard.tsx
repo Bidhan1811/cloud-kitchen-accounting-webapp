@@ -28,6 +28,7 @@ export function MobileListCard({
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => e.key === "Enter" && onClick() : undefined}
+      style={onClick ? { willChange: "transform" } : undefined}
       className={cn(
         "bg-white/60 backdrop-blur-md border border-white/50 rounded-2xl p-4",
         "flex items-center gap-3 shadow-sm",

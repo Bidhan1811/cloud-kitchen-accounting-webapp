@@ -65,6 +65,7 @@ export function MobileBottomDrawer({
             role="dialog"
             aria-modal="true"
             aria-label={title}
+            style={{ willChange: "transform" }}
             className={cn(
               "fixed z-[61] glass-modal flex flex-col md:hidden",
               "left-0 right-0 bottom-0 w-full max-h-[92dvh] rounded-t-[20px] !rounded-b-none border-b-0",

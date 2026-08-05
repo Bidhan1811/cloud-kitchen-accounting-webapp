@@ -24,6 +24,10 @@ interface SaleFiltersProps {
   onMinAmountChange: (v: number | "") => void;
   maxAmount: number | "";
   onMaxAmountChange: (v: number | "") => void;
+  /** Controlled open state — when provided, the component acts in controlled mode */
+  open?: boolean;
+  /** Called when the drawer should open or close in controlled mode */
+  onOpenChange?: (open: boolean) => void;
 }
 
 const STATUS_OPTIONS = [
@@ -57,8 +61,18 @@ export function SaleFilters({
   endDate, onEndDateChange,
   minAmount, onMinAmountChange,
   maxAmount, onMaxAmountChange,
+  open: controlledOpen,
+  onOpenChange,
 }: SaleFiltersProps) {
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Support both controlled (from parent) and uncontrolled mode
+  const isControlled = controlledOpen !== undefined;
+  const drawerOpen = isControlled ? controlledOpen : internalOpen;
+  const setDrawerOpen = (val: boolean) => {
+    if (!isControlled) setInternalOpen(val);
+    onOpenChange?.(val);
+  };
 
   const [draftFilters, setDraftFilters] = useState({
     status, paymentMode, datePreset, startDate, endDate, minAmount, maxAmount
@@ -94,22 +108,26 @@ export function SaleFilters({
   };
 
   return (
-    <div className="flex items-center gap-2 mb-5">
-      <SearchInput
-        value={search}
-        onChange={onSearchChange}
-        placeholder="Search invoice, customer..."
-        className="flex-1 max-w-[320px]"
-      />
+    <div className={isControlled ? "contents" : "flex items-center gap-2 mb-5"}>
+      {!isControlled && (
+        <SearchInput
+          value={search}
+          onChange={onSearchChange}
+          placeholder="Search invoice, customer..."
+          className="flex-1 max-w-[320px]"
+        />
+      )}
       
-      <button
-        type="button"
-        onClick={() => setDrawerOpen(true)}
-        className="flex items-center gap-2 h-[38px] px-4 rounded-full bg-[var(--glass-input)] backdrop-blur-md border border-[var(--glass-border)] outline-none hover:border-[var(--accent)] text-[13px] text-[var(--text-primary)] font-[500] transition-colors"
-      >
-        <Filter size={14} className="text-[#C8873A]" />
-        Filters
-      </button>
+      {!isControlled && (
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(true)}
+          className="flex items-center gap-2 h-[38px] px-4 rounded-full bg-[var(--glass-input)] backdrop-blur-md border border-[var(--glass-border)] outline-none hover:border-[var(--accent)] text-[13px] text-[var(--text-primary)] font-[500] transition-colors"
+        >
+          <Filter size={14} className="text-[#C8873A]" />
+          Filters
+        </button>
+      )}
 
       <Drawer
         open={drawerOpen}

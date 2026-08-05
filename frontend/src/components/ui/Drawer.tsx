@@ -57,6 +57,7 @@ export function Drawer({ open, onClose, title, subtitle, children, className, fo
             role="dialog"
             aria-modal="true"
             aria-label={title}
+            style={{ willChange: "transform" }}
             className={cn(
               "fixed z-[51] glass-modal flex flex-col",
               // Desktop: right side

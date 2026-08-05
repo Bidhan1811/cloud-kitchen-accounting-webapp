@@ -35,6 +35,7 @@ export default function SalesPage() {
   const [viewingSale, setViewingSale] = useState<Sale | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [voiceDraft, setVoiceDraft] = useState<{ defaultValues: Partial<VoiceSaleExtract>; transcript: string } | null>(null);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -105,11 +106,28 @@ export default function SalesPage() {
         />
       </div>
 
+      {/* Mobile search + filter bar */}
       <div className="md:hidden mb-4">
         <MobileSearchFilterBar
           searchValue={search}
           onSearchChange={(v) => { setSearch(v); setPage(1); }}
-          onFilterClick={() => { /* open filter drawer in future */ }}
+          onFilterClick={() => setFilterDrawerOpen(true)}
+        />
+      </div>
+
+      {/* Mobile-only: reuse SaleFilters drawer in controlled mode (no search bar shown) */}
+      <div className="md:hidden">
+        <SaleFilters
+          search={search} onSearchChange={(v) => { setSearch(v); setPage(1); }}
+          status={status} onStatusChange={(v) => { setStatus(v); setPage(1); }}
+          paymentMode={paymentMode} onPaymentModeChange={(v) => { setPaymentMode(v); setPage(1); }}
+          datePreset={datePreset} onDatePresetChange={(v) => { setDatePreset(v); setPage(1); }}
+          startDate={startDate} onStartDateChange={(v) => { setStartDate(v); setPage(1); }}
+          endDate={endDate} onEndDateChange={(v) => { setEndDate(v); setPage(1); }}
+          minAmount={minAmount} onMinAmountChange={(v) => { setMinAmount(v); setPage(1); }}
+          maxAmount={maxAmount} onMaxAmountChange={(v) => { setMaxAmount(v); setPage(1); }}
+          open={filterDrawerOpen}
+          onOpenChange={setFilterDrawerOpen}
         />
       </div>
 

@@ -25,6 +25,7 @@ export function MobileNav() {
 
   return (
     <nav
+      style={{ willChange: "transform" }}
       className={cn(
         "md:hidden fixed bottom-0 left-0 right-0 z-[20]",
         "bg-white/80 backdrop-blur-xl border-t border-white/60",
