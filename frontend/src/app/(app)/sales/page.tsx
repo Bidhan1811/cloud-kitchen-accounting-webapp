@@ -115,23 +115,35 @@ export default function SalesPage() {
         />
       </div>
 
-      {/* Mobile-only: reuse SaleFilters drawer in controlled mode (no search bar shown) */}
-      <div className="md:hidden">
-        <SaleFilters
-          search={search} onSearchChange={(v) => { setSearch(v); setPage(1); }}
-          status={status} onStatusChange={(v) => { setStatus(v); setPage(1); }}
-          paymentMode={paymentMode} onPaymentModeChange={(v) => { setPaymentMode(v); setPage(1); }}
-          datePreset={datePreset} onDatePresetChange={(v) => { setDatePreset(v); setPage(1); }}
-          startDate={startDate} onStartDateChange={(v) => { setStartDate(v); setPage(1); }}
-          endDate={endDate} onEndDateChange={(v) => { setEndDate(v); setPage(1); }}
-          minAmount={minAmount} onMinAmountChange={(v) => { setMinAmount(v); setPage(1); }}
-          maxAmount={maxAmount} onMaxAmountChange={(v) => { setMaxAmount(v); setPage(1); }}
-          open={filterDrawerOpen}
-          onOpenChange={setFilterDrawerOpen}
+      {/* Mobile-only: SaleFilters in controlled mode (renders only the MobileBottomDrawer, no layout div needed) */}
+      <SaleFilters
+        search={search} onSearchChange={(v) => { setSearch(v); setPage(1); }}
+        status={status} onStatusChange={(v) => { setStatus(v); setPage(1); }}
+        paymentMode={paymentMode} onPaymentModeChange={(v) => { setPaymentMode(v); setPage(1); }}
+        datePreset={datePreset} onDatePresetChange={(v) => { setDatePreset(v); setPage(1); }}
+        startDate={startDate} onStartDateChange={(v) => { setStartDate(v); setPage(1); }}
+        endDate={endDate} onEndDateChange={(v) => { setEndDate(v); setPage(1); }}
+        minAmount={minAmount} onMinAmountChange={(v) => { setMinAmount(v); setPage(1); }}
+        maxAmount={maxAmount} onMaxAmountChange={(v) => { setMaxAmount(v); setPage(1); }}
+        open={filterDrawerOpen}
+        onOpenChange={setFilterDrawerOpen}
+      />
+
+      {/* Desktop: wrap in glass-card; Mobile: no wrapper to avoid white column bleed */}
+      <div className="hidden md:block glass-card p-1 overflow-hidden">
+        <SalesTable
+          data={sales}
+          isLoading={isLoading}
+          onAdd={() => { setSelectedSale(null); setVoiceDraft(null); setDrawerOpen(true); }}
+          onView={setViewingSale}
+          onEdit={(sale) => { setSelectedSale(sale); setVoiceDraft(null); setDrawerOpen(true); }}
+          page={page}
+          totalPages={pagination?.totalPages ?? 1}
+          total={pagination?.total ?? 0}
+          onPageChange={setPage}
         />
       </div>
-
-      <div className="glass-card p-1 overflow-hidden md:p-1 max-md:bg-transparent max-md:border-none max-md:shadow-none max-md:p-0 max-md:[backdrop-filter:none] max-md:[-webkit-backdrop-filter:none]">
+      <div className="md:hidden">
         <SalesTable
           data={sales}
           isLoading={isLoading}
