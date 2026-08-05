@@ -131,7 +131,7 @@ export default function SalesPage() {
         />
       </div>
 
-      <div className="glass-card p-1 overflow-hidden md:p-1 max-md:bg-transparent max-md:border-none max-md:shadow-none max-md:p-0">
+      <div className="glass-card p-1 overflow-hidden md:p-1 max-md:bg-transparent max-md:border-none max-md:shadow-none max-md:p-0 max-md:[backdrop-filter:none] max-md:[-webkit-backdrop-filter:none]">
         <SalesTable
           data={sales}
           isLoading={isLoading}
