@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getSales, getSaleById, createSale, updateSale, deleteSale } from "../controllers/sale.controller.js";
+import { getSales, getSaleById, createSale, updateSale, deleteSale, patchPayment } from "../controllers/sale.controller.js";
 import { verifyJWT, requireRole } from "../middleware/auth.js";
 
 const router = Router();
@@ -11,6 +11,10 @@ router.route("/")
 
 router.route("/:id")
   .get(verifyJWT, getSaleById);
+
+// Quick payment status/mode update — no role restriction (both Owner & Admin can mark payment)
+router.route("/:id/payment")
+  .patch(verifyJWT, patchPayment);
 
 // Routes restricted to Admin for editing/deleting past sales
 router.route("/:id")

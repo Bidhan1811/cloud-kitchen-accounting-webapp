@@ -320,3 +320,32 @@ export const deleteSale = async (id) => {
 
   return sale;
 };
+
+/**
+ * Patches only the payment-related fields on an existing sale.
+ * Deliberately does not touch items, customer, or totals — those go through updateSale.
+ * The Sale model's pre-validate hook handles amountPaid/balanceDue recalculation.
+ */
+export const patchPayment = async (id, { paymentStatus, paymentMode, amountPaid }) => {
+  const sale = await Sale.findById(id).populate("customer", "name phone address totalOrders totalSpend");
+  if (!sale) {
+    throw new ApiError(404, "Sale not found");
+  }
+
+  sale.paymentStatus = paymentStatus;
+
+  if (paymentStatus === "Unpaid") {
+    sale.paymentMode = undefined;
+    sale.amountPaid = 0;
+  } else {
+    if (paymentMode) sale.paymentMode = paymentMode;
+    if (paymentStatus === "Paid") {
+      sale.amountPaid = sale.grandTotal;
+    } else if (paymentStatus === "Partial" && amountPaid !== undefined) {
+      sale.amountPaid = amountPaid;
+    }
+  }
+
+  const updatedSale = await sale.save();
+  return updatedSale;
+};

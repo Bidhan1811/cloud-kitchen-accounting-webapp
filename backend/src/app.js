@@ -9,9 +9,21 @@ const app = express();
 app.use(helmet());
 
 
+// app.use(cors({
+//   origin: process.env.CORS_ORIGIN === "*" ? "*" : process.env.CORS_ORIGIN?.split(",") || "*",
+//   credentials: true
+// }));
+const allowedOrigins = process.env.CORS_ORIGIN.split(",");
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN === "*" ? "*" : process.env.CORS_ORIGIN?.split(",") || "*",
-  credentials: true
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    }
+  },
+  credentials: true,
 }));
 
 

@@ -1,6 +1,12 @@
 import apiClient from "@/lib/axios";
 import type { PaginatedResponse, ApiResponse } from "@/types/api.types";
-import type { Sale, SaleFilters, CreateSalePayload } from "../types/sale.types";
+import type { Sale, SaleFilters, CreateSalePayload, PaymentStatus, SchemaPaymentMode } from "../types/sale.types";
+
+export interface PatchPaymentPayload {
+  paymentStatus: PaymentStatus;
+  paymentMode?: SchemaPaymentMode;
+  amountPaid?: number;
+}
 
 export const salesService = {
   getAll: async (filters: SaleFilters = {}): Promise<PaginatedResponse<Sale>> => {
@@ -27,7 +33,13 @@ export const salesService = {
     return data.data;
   },
 
+  patchPayment: async (id: string, payload: PatchPaymentPayload): Promise<Sale> => {
+    const { data } = await apiClient.patch<ApiResponse<Sale>>(`/sales/${id}/payment`, payload);
+    return data.data;
+  },
+
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/sales/${id}`);
   },
 };
+

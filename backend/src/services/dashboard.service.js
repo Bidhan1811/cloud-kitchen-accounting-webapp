@@ -11,10 +11,9 @@ export const getDashboardSummary = async (matchStage = {}) => {
         _id: null,
         totalSales: { $sum: "$grandTotal" },
         totalOrders: { $sum: 1 },
-        unpaidAmount: {
-          $sum: {
-            $cond: [{ $eq: ["$paymentStatus", "Unpaid"] }, "$grandTotal", 0],
-          },
+        // Sum balanceDue for ALL sales with outstanding amounts (Unpaid + Partial)
+        pendingAmount: {
+          $sum: "$balanceDue",
         },
       },
     },
@@ -31,7 +30,7 @@ export const getDashboardSummary = async (matchStage = {}) => {
     },
   ]);
 
-  const salesData = salesAgg[0] || { totalSales: 0, totalOrders: 0, unpaidAmount: 0 };
+  const salesData = salesAgg[0] || { totalSales: 0, totalOrders: 0, pendingAmount: 0 };
   const expData = expAgg[0] || { totalExpenditure: 0 };
   const netProfit = salesData.totalSales - expData.totalExpenditure;
 

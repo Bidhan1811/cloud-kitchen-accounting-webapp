@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { salesService } from "../services/sales.service";
+import type { PatchPaymentPayload } from "../services/sales.service";
 import type { SaleFilters, CreateSalePayload } from "../types/sale.types";
 import { QUERY_KEYS } from "@/constants/queryKeys";
 
@@ -58,5 +59,20 @@ export function useDeleteSale() {
       toast.success("Sale deleted.");
     },
     onError: () => toast.error("Failed to delete sale."),
+  });
+}
+
+export function usePatchSalePayment(onSuccess?: (updatedSale: import("../types/sale.types").Sale) => void) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: PatchPaymentPayload }) =>
+      salesService.patchPayment(id, payload),
+    onSuccess: (updatedSale, { id }) => {
+      qc.invalidateQueries({ queryKey: ["sales"] });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.SALE(id) });
+      toast.success("Payment updated!");
+      onSuccess?.(updatedSale);
+    },
+    onError: () => toast.error("Failed to update payment."),
   });
 }

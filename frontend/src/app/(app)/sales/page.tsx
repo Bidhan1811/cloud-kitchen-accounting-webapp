@@ -16,6 +16,7 @@ import type { Sale } from "@/features/sales/types/sale.types";
 import { MobileSearchFilterBar } from "@/components/mobile/MobileSearchFilterBar";
 import { VoiceMicButton } from "@/features/voice/components/VoiceMicButton";
 import type { VoiceParseResult } from "@/features/voice/services/voice.service";
+import { captureReceiptFor, invalidateReceiptCapture } from "@/features/sales/components/receiptCapture";
 
 interface VoiceSaleExtract {
   customerName?: string | null;
@@ -72,6 +73,44 @@ export default function SalesPage() {
     setSelectedSale(null);
     setVoiceDraft({ defaultValues: result.extracted, transcript: result.transcript });
     setDrawerOpen(true);
+  };
+
+  /**
+   * Kick off the receipt image capture shortly after a row is tapped —
+   * but deliberately AFTER this click handler returns, so it never
+   * competes with React's own work of opening the detail drawer. Doing the
+   * capture synchronously here (createRoot + html2canvas) was blocking the
+   * main thread right as the drawer tried to render, which is what made
+   * the drawer feel slow/late to open. Deferring it lets the drawer open
+   * first; the capture still finishes well before most people reach for
+   * the Share button.
+   */
+  const handleViewSale = (sale: Sale) => {
+    setViewingSale(sale);
+    const idle = (window as any).requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 0));
+    idle(() => {
+      captureReceiptFor(sale).catch(() => {});
+    });
+  };
+
+  /**
+   * If a sale gets edited, its old cached receipt image is stale (amounts,
+   * items, etc. may have changed). Drop it so the next view re-captures.
+   */
+  const handleEditSale = (sale: Sale) => {
+    invalidateReceiptCapture(sale._id);
+    setSelectedSale(sale);
+    setVoiceDraft(null);
+    setDrawerOpen(true);
+  };
+
+  /**
+   * Called by SaleDetail after a successful inline payment patch.
+   * Updates the local viewingSale so the drawer reflects the new status
+   * instantly without needing to close and reopen.
+   */
+  const handlePaymentUpdate = (updated: Sale) => {
+    setViewingSale(updated);
   };
 
   return (
@@ -135,8 +174,8 @@ export default function SalesPage() {
           data={sales}
           isLoading={isLoading}
           onAdd={() => { setSelectedSale(null); setVoiceDraft(null); setDrawerOpen(true); }}
-          onView={setViewingSale}
-          onEdit={(sale) => { setSelectedSale(sale); setVoiceDraft(null); setDrawerOpen(true); }}
+          onView={handleViewSale}
+          onEdit={handleEditSale}
           page={page}
           totalPages={pagination?.totalPages ?? 1}
           total={pagination?.total ?? 0}
@@ -148,8 +187,8 @@ export default function SalesPage() {
           data={sales}
           isLoading={isLoading}
           onAdd={() => { setSelectedSale(null); setVoiceDraft(null); setDrawerOpen(true); }}
-          onView={setViewingSale}
-          onEdit={(sale) => { setSelectedSale(sale); setVoiceDraft(null); setDrawerOpen(true); }}
+          onView={handleViewSale}
+          onEdit={handleEditSale}
           page={page}
           totalPages={pagination?.totalPages ?? 1}
           total={pagination?.total ?? 0}
@@ -177,6 +216,7 @@ export default function SalesPage() {
               onClose={() => setViewingSale(null)}
               onEdit={() => { setSelectedSale(viewingSale); setVoiceDraft(null); setViewingSale(null); setDrawerOpen(true); }}
               onDelete={() => { setDeleteId(viewingSale._id); setViewingSale(null); }}
+              onPaymentUpdate={handlePaymentUpdate}
             />
           </>
         )}

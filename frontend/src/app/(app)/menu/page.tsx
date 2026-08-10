@@ -384,7 +384,7 @@ export default function MenuPage() {
         }
       >
         {viewItem && (
-          <div className="flex flex-col gap-4">
+          <div className="glass-card p-5 flex flex-col gap-4">
             <div className="flex justify-between items-center">
               <span className="text-[#6B5D50] text-[13px]">Full Price</span>
               <span className="font-jetbrains font-bold text-[15px]">{formatCurrency(viewItem.price)}</span>

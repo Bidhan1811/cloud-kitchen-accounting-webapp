@@ -131,6 +131,16 @@ body {
   contain: layout style;
 }
 
+/* Mobile bottom drawer specific cards - enhance contrast against the cream background */
+.mobile-bottom-drawer .glass-card {
+  background: #ffffff !important;
+  box-shadow: 0 6px 20px rgba(139, 94, 52, 0.09), 0 2px 6px rgba(139, 94, 52, 0.05) !important;
+  border-color: rgba(139, 94, 52, 0.12) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+
 .glass-input {
   background: var(--glass-input);
   backdrop-filter: blur(8px);
@@ -597,4 +607,49 @@ body {
 #main-content {
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
+}
+
+/* ─── Print Styles ───────────────────────────────────────────────── */
+@media print {
+  /* Set page to A5-ish size, minimal margins */
+  @page {
+    size: A5 portrait;
+    margin: 12mm;
+  }
+
+  /* Hide absolutely everything on the page */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Show only the print receipt container and all its children */
+  .print-receipt-root,
+  .print-receipt-root * {
+    visibility: visible !important;
+  }
+
+  /* Position the receipt at the top-left of the print surface */
+  .print-receipt-root {
+    position: fixed !important;
+    inset: 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+    pointer-events: none !important;
+    z-index: 99999 !important;
+    background: white !important;
+  }
+
+  /* The SaleReceipt div itself — constrain width for a clean receipt look */
+  .print-receipt-root > div {
+    width: 360px !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  /* Kill the blurred photo background entirely */
+  .bg-layer,
+  .bg-overlay {
+    display: none !important;
+  }
 }

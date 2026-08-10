@@ -177,7 +177,7 @@ export function ExpenditureTable({ data, isLoading, onAdd, page, totalPages, tot
         }
       >
         {viewItem && (
-          <div className="flex flex-col gap-4">
+          <div className="glass-card p-5 flex flex-col gap-4">
             <div className="flex justify-between items-center">
               <span className="text-[#6B5D50] text-[13px]">Date</span>
               <span className="text-[#1C1410] font-medium text-[13px]">{formatDate(viewItem.date)}</span>

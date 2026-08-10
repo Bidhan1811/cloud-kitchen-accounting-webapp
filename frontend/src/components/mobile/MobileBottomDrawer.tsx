@@ -67,6 +67,7 @@ export function MobileBottomDrawer({
         aria-modal="true"
         aria-label={title}
         className={cn(
+          "mobile-bottom-drawer",
           "md:hidden fixed z-[61] flex flex-col",
           "left-0 right-0 bottom-0 w-full max-h-[92dvh]",
           "rounded-t-[28px] border-t border-x border-[var(--glass-border)]",

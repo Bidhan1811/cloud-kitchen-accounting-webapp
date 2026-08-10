@@ -87,3 +87,28 @@ export const validateUpdateSale = (data) => {
     }
   }
 };
+
+/**
+ * Validates the narrow payload accepted by PATCH /sales/:id/payment.
+ * Only payment-related fields are allowed — items and customer data are untouched.
+ */
+export const validatePatchPayment = (data) => {
+  const { paymentStatus, paymentMode, amountPaid } = data;
+
+  if (!paymentStatus || !VALID_PAYMENT_STATUSES.includes(paymentStatus)) {
+    throw new ApiError(400, "Payment status must be 'Paid', 'Unpaid', or 'Partial'");
+  }
+
+  if (
+    (paymentStatus === "Paid" || paymentStatus === "Partial") &&
+    (!paymentMode || !VALID_PAYMENT_MODES.includes(paymentMode))
+  ) {
+    throw new ApiError(400, "Valid payment mode is required when status is Paid or Partial");
+  }
+
+  if (paymentStatus === "Partial") {
+    if (amountPaid === undefined || typeof amountPaid !== "number" || amountPaid <= 0) {
+      throw new ApiError(400, "Amount paid is required and must be greater than 0 for a Partial payment");
+    }
+  }
+};
