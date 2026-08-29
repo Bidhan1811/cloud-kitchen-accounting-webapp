@@ -32,6 +32,7 @@ export interface RecentSale {
   customerName: string;
   amount: number;
   status: string;
+  paymentMode?: string;
   date: string;
 }
 

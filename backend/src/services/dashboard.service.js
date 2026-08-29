@@ -211,7 +211,7 @@ export const getRecentSales = async (limit = 10) => {
   const sales = await Sale.find({})
     .sort({ date: -1 })
     .limit(limit)
-    .select("invoiceId customerName grandTotal paymentStatus date");
+    .select("invoiceId customerName grandTotal paymentStatus paymentMode date");
 
   return sales.map((s) => ({
     _id: s._id,
@@ -219,6 +219,7 @@ export const getRecentSales = async (limit = 10) => {
     customerName: s.customerName,
     amount: s.grandTotal,
     status: s.paymentStatus,
+    paymentMode: s.paymentMode,
     date: s.date,
   }));
 };
