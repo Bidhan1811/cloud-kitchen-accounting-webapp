@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Users } from "lucide-react";
+import { Plus, Users, BookOpen } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -10,7 +10,7 @@ import { Drawer } from "@/components/ui/Drawer";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SearchInput } from "@/components/ui/SearchInput";
-import { useCustomers, useCreateCustomer } from "@/features/customers/hooks/useCustomers";
+import { useCustomers, useCreateCustomer, useUpdateCustomer } from "@/features/customers/hooks/useCustomers";
 import { useDebounce } from "@/hooks";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { generateInitials, stringToColor } from "@/utils/strings";
@@ -27,6 +27,7 @@ import { MobileSearchFilterBar } from "@/components/mobile/MobileSearchFilterBar
 import { Phone, MapPin } from "lucide-react";
 import { VoiceMicButton } from "@/features/voice/components/VoiceMicButton";
 import type { VoiceParseResult } from "@/features/voice/services/voice.service";
+import { ROUTES } from "@/constants/routes";
 
 const customerSchema = z.object({
   name: z.string().min(2, "Name required"),
@@ -71,26 +72,45 @@ function CustomerForm({
   );
 }
 
+// ─── Filter tab types ─────────────────────────────────────────────
+type FilterView = "all" | "credit";
+
 export default function CustomersPage() {
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [filterView, setFilterView] = useState<FilterView>("all");
   const debouncedSearch = useDebounce(search, 300);
 
   // Voice draft — maps 1:1 onto CustomerForm's fields already.
   const [voiceDraft, setVoiceDraft] = useState<{ defaultValues: VoiceCustomerExtract; transcript: string } | null>(null);
 
-  const { data, isLoading } = useCustomers({ search: debouncedSearch, page, limit: 10 });
+  const { data, isLoading } = useCustomers({
+    search: debouncedSearch,
+    page,
+    limit: 10,
+    ...(filterView === "credit" ? { isCreditCustomer: true } : {}),
+  });
   const { mutateAsync: createCustomer, isPending } = useCreateCustomer();
+  const { mutate: updateCustomer, isPending: isUpdating } = useUpdateCustomer();
   const isMobile = useIsMobile();
 
-  const customers = data?.data ?? [];
-  const pagination = data?.pagination;
+  const customers = (data as any)?.customers ?? (data as any)?.data ?? [];
+  const pagination = (data as any)?.pagination;
 
   const handleVoiceResult = (result: VoiceParseResult<VoiceCustomerExtract>) => {
     setVoiceDraft({ defaultValues: result.extracted, transcript: result.transcript });
     setDrawerOpen(true);
+  };
+
+  const handleCustomerClick = (customer: Customer) => {
+    // In credit filter mode: clicking a credit customer goes to their ledger page.
+    if (filterView === "credit") {
+      router.push(ROUTES.LEDGER_CUSTOMER(customer._id));
+    } else {
+      router.push(ROUTES.CUSTOMER(customer._id));
+    }
   };
 
   const columns: Column<Customer>[] = [
@@ -99,7 +119,7 @@ export default function CustomersPage() {
       header: "Customer",
       render: (row) => (
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-[700] text-[#C8873A] flex-shrink-0"
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-[700] text-[#9B7258] flex-shrink-0"
             style={{ background: stringToColor(row.name) }}>
             {generateInitials(row.name)}
           </div>
@@ -112,13 +132,79 @@ export default function CustomersPage() {
     },
     { key: "totalOrders", header: "Orders", render: (r) => <span className="font-mono font-[600]">{r.totalOrders}</span> },
     { key: "totalSpend", header: "Total Spend", className: "amount", render: (r) => formatCurrency(r.totalSpend) },
+    // Show credit balance column when in credit filter mode, otherwise show outstanding
+    filterView === "credit"
+      ? {
+          key: "creditBalance",
+          header: "Credit Balance",
+          render: (r) => {
+            const bal = r.creditBalance;
+            if (!bal) return <span className="text-[#9E8E80] font-mono text-[13px]">—</span>;
+            return (
+              <span
+                className={cn(
+                  "font-mono font-[600] text-[13px]",
+                  bal.isSettled ? "text-[#9E8E80]" : bal.isAdvance ? "text-[#4C9A6E]" : "text-[#C0524A]"
+                )}
+              >
+                {formatCurrency(bal.amount)}
+                {bal.isAdvance && <span className="ml-1 text-[10px]">(Advance)</span>}
+              </span>
+            );
+          },
+        }
+      : {
+          key: "outstanding",
+          header: "Outstanding",
+          render: (r) => (
+            <span className={cn("font-mono font-[600] text-[13px]", r.outstanding > 0 ? "text-[#C0524A]" : "text-[#9E8E80]")}>
+              {r.outstanding > 0 ? formatCurrency(r.outstanding) : "₹0"}
+            </span>
+          ),
+        },
+    // Ledger shortcut column when in credit view
+    ...(filterView === "credit"
+      ? [
+          {
+            key: "_ledger" as keyof Customer,
+            header: "",
+            render: (r: Customer) => (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(ROUTES.LEDGER_CUSTOMER(r._id));
+                }}
+                className="flex items-center gap-1 text-[11px] font-[600] text-[#9B7258] hover:underline"
+              >
+                <BookOpen size={12} /> Ledger
+              </button>
+            ),
+          },
+        ]
+      : []),
     {
-      key: "outstanding",
-      header: "Outstanding",
-      render: (r) => (
-        <span className={cn("font-mono font-[600] text-[13px]", r.outstanding > 0 ? "text-[#C0524A]" : "text-[#9E8E80]")}>
-          {r.outstanding > 0 ? formatCurrency(r.outstanding) : "₹0"}
-        </span>
+      key: "_actions" as keyof Customer,
+      header: "Credit Access",
+      render: (r: Customer) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            updateCustomer({
+              id: r._id,
+              payload: { isCreditCustomer: !r.isCreditCustomer },
+            });
+          }}
+          disabled={isUpdating}
+          className={cn(
+            "text-[11px] font-[600] px-2.5 py-1 rounded-md transition-colors",
+            r.isCreditCustomer
+              ? "text-[#C0524A] bg-[rgba(192,82,74,0.1)] hover:bg-[rgba(192,82,74,0.2)]"
+              : "text-[#4C9A6E] bg-[rgba(76,154,110,0.1)] hover:bg-[rgba(76,154,110,0.2)]",
+            isUpdating && "opacity-50 cursor-not-allowed"
+          )}
+        >
+          {r.isCreditCustomer ? "Disable" : "Enable"}
+        </button>
       ),
     },
   ];
@@ -144,6 +230,34 @@ export default function CustomersPage() {
         }
       />
 
+      {/* ─── Filter tabs ─── */}
+      <div className="flex items-center gap-2 mb-4">
+        <button
+          onClick={() => { setFilterView("all"); setPage(1); }}
+          className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-[12px] font-[600] transition-all",
+            filterView === "all"
+              ? "bg-primary-gradient"
+              : "text-[#9E8E80] hover:text-[#1C1410] hover:bg-[rgba(30,20,10,0.06)]"
+          )}
+        >
+          <Users size={13} />
+          All Customers
+        </button>
+        <button
+          onClick={() => { setFilterView("credit"); setPage(1); }}
+          className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-[12px] font-[600] transition-all",
+            filterView === "credit"
+              ? "bg-primary-gradient"
+              : "text-[#9E8E80] hover:text-[#1C1410] hover:bg-[rgba(30,20,10,0.06)]"
+          )}
+        >
+          <BookOpen size={13} />
+          Credit Customers
+        </button>
+      </div>
+
       <div className="hidden md:block mb-5">
         <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search customers..." className="max-w-sm" />
       </div>
@@ -161,16 +275,22 @@ export default function CustomersPage() {
           data={customers}
           keyExtractor={(r) => r._id}
           isLoading={isLoading}
-          onRowClick={(r) => router.push(`/customers/${r._id}`)}
+          onRowClick={(r) => handleCustomerClick(r)}
           page={page}
           totalPages={pagination?.totalPages ?? 1}
           total={pagination?.total ?? 0}
           limit={10}
           onPageChange={setPage}
           emptyState={
-            <EmptyState icon={<Users size={24} />} title="No customers yet"
-              description="Add your first regular customer."
-              action={{ label: "+ Add Customer", onClick: () => setDrawerOpen(true) }}
+            <EmptyState
+              icon={filterView === "credit" ? <BookOpen size={24} /> : <Users size={24} />}
+              title={filterView === "credit" ? "No credit customers yet" : "No customers yet"}
+              description={
+                filterView === "credit"
+                  ? "Mark a customer as a Credit Customer in their profile to see them here."
+                  : "Add your first regular customer."
+              }
+              action={filterView === "all" ? { label: "+ Add Customer", onClick: () => setDrawerOpen(true) } : undefined}
             />
           }
         />
@@ -184,17 +304,23 @@ export default function CustomersPage() {
             </div>
           ))
         ) : customers.length === 0 ? (
-          <EmptyState icon={<Users size={24} />} title="No customers yet"
-            description="Add your first regular customer."
-            action={{ label: "+ Add Customer", onClick: () => setDrawerOpen(true) }}
+          <EmptyState
+            icon={filterView === "credit" ? <BookOpen size={24} /> : <Users size={24} />}
+            title={filterView === "credit" ? "No credit customers yet" : "No customers yet"}
+            description={
+              filterView === "credit"
+                ? "Mark a customer as a Credit Customer in their profile to see them here."
+                : "Add your first regular customer."
+            }
+            action={filterView === "all" ? { label: "+ Add Customer", onClick: () => setDrawerOpen(true) } : undefined}
           />
         ) : (
-          customers.map(c => (
+          customers.map((c: Customer) => (
             <MobileListCard
               key={c._id}
-              onClick={() => router.push(`/customers/${c._id}`)}
+              onClick={() => handleCustomerClick(c)}
               avatar={
-                <div className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-[700] text-[#C8873A] flex-shrink-0"
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-[700] text-[#9B7258] flex-shrink-0"
                   style={{ background: stringToColor(c.name) }}>
                   {generateInitials(c.name)}
                 </div>
@@ -213,16 +339,67 @@ export default function CustomersPage() {
                 </div>
               }
               trailing={
-                <div className="flex flex-col items-end gap-1">
-                  <span className="font-jetbrains font-bold text-[14px] text-text-primary">
-                    {formatCurrency(c.totalSpend)}
-                  </span>
-                  {c.outstanding > 0 && (
-                    <span className="text-[10px] text-error">
-                      Due: {formatCurrency(c.outstanding)}
+                filterView === "credit" && c.creditBalance ? (
+                  <div className="flex flex-col items-end gap-1">
+                    <span
+                      className={cn(
+                        "font-jetbrains font-bold text-[14px]",
+                        c.creditBalance.isSettled
+                          ? "text-[#9E8E80]"
+                          : c.creditBalance.isAdvance
+                          ? "text-[#4C9A6E]"
+                          : "text-[#C0524A]"
+                      )}
+                    >
+                      {formatCurrency(c.creditBalance.amount)}
                     </span>
+                    <span
+                      className={cn(
+                        "text-[10px]",
+                        c.creditBalance.isSettled
+                          ? "text-[#9E8E80]"
+                          : c.creditBalance.isAdvance
+                          ? "text-[#4C9A6E]"
+                          : "text-[#C0524A]"
+                      )}
+                    >
+                      {c.creditBalance.label}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="font-jetbrains font-bold text-[14px] text-text-primary">
+                      {formatCurrency(c.totalSpend)}
+                    </span>
+                    {c.outstanding > 0 && (
+                      <span className="text-[10px] text-error">
+                        Due: {formatCurrency(c.outstanding)}
+                      </span>
+                    )}
+                  </div>
+                )
+              }
+              action={
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    updateCustomer({
+                      id: c._id,
+                      payload: { isCreditCustomer: !c.isCreditCustomer },
+                    });
+                  }}
+                  disabled={isUpdating}
+                  className={cn(
+                    "mt-2 w-full text-[12px] font-[600] py-1.5 rounded-[8px] transition-colors flex items-center justify-center gap-1",
+                    c.isCreditCustomer
+                      ? "text-[#C0524A] bg-[rgba(192,82,74,0.1)]"
+                      : "text-[#4C9A6E] bg-[rgba(76,154,110,0.1)]",
+                    isUpdating && "opacity-50"
                   )}
-                </div>
+                >
+                  <BookOpen size={12} />
+                  {c.isCreditCustomer ? "Disable Credit" : "Enable Credit"}
+                </button>
               }
             />
           ))

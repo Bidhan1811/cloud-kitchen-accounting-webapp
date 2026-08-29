@@ -44,19 +44,19 @@ export function VoiceMicButton<T = Record<string, unknown>>({
                 disabled={status === "processing"}
                 aria-label={status === "recording" ? "Stop recording" : "Record voice entry"}
                 className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0",
-                    status === "recording" && "bg-[#C0524A] animate-pulse",
-                    status === "processing" && "bg-[#9E8E80]",
-                    (status === "idle" || status === "error" || status === "done") && "bg-[#C8873A]",
+                    "w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0 shadow-sm",
+                    status === "recording" && "bg-[#C0524A] text-white animate-pulse",
+                    status === "processing" && "bg-[#9E8E80] text-white",
+                    (status === "idle" || status === "error" || status === "done") && "bg-primary-gradient",
                     className
                 )}
             >
                 {status === "processing" ? (
-                    <Loader2 size={18} className="text-white animate-spin" />
+                    <Loader2 size={18} className="animate-spin" />
                 ) : status === "recording" ? (
-                    <Square size={16} className="text-white" fill="white" />
+                    <Square size={16} fill="currentColor" />
                 ) : (
-                    <Mic size={18} className="text-white" />
+                    <Mic size={18} />
                 )}
             </button>
             {status === "recording" && (

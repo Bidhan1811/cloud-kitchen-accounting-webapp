@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Inter, JetBrains_Mono } from "next/font/google";
+import { Luxurious_Script, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { AuthProvider } from "@/providers/AuthProvider";
+import { ThemeProvider } from "@/providers/ThemeProvider";
 import { Toaster } from "sonner";
 
-const playfair = Playfair_Display({
+const luxurious = Luxurious_Script({
   subsets: ["latin"],
-  weight: ["600"],
-  variable: "--font-playfair",
+  weight: "400",
+  variable: "--font-luxurious",
   display: "swap",
 });
 
@@ -44,19 +45,29 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${playfair.variable} ${inter.variable} ${jetbrains.variable}`}
+      className={`${luxurious.variable} ${inter.variable} ${jetbrains.variable}`}
+      suppressHydrationWarning
     >
       <body>
-        {/* Fixed background kitchen photograph */}
+        {/* Anti-flash theme script — runs synchronously before any paint */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('rr_theme')||'system';var e=t==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t;document.documentElement.setAttribute('data-theme',e);}catch(e){}`,
+          }}
+        />
+
+        {/* Fixed background kitchen photograph (hidden in dark mode via CSS) */}
         <div className="bg-layer" aria-hidden="true" />
         <div className="bg-overlay" aria-hidden="true" />
 
         {/* App */}
-        <AuthProvider>
-          <QueryProvider>
-            {children}
-          </QueryProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <QueryProvider>
+              {children}
+            </QueryProvider>
+          </AuthProvider>
+        </ThemeProvider>
 
         {/* Toast notifications */}
         <Toaster

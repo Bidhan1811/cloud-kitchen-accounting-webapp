@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus } from "lucide-react";
+import { Plus, ShoppingBag, TrendingUp, AlertCircle, BarChart2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { SalesTable } from "@/features/sales/components/SalesTable";
@@ -11,8 +11,11 @@ import { SaleDrawer } from "@/features/sales/components/SaleDrawer";
 import { SaleDetail } from "@/features/sales/components/SaleDetail";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useSales, useDeleteSale } from "@/features/sales/hooks/useSales";
+import { useDashboard } from "@/features/dashboard/hooks/useDashboard";
 import { useDebounce } from "@/hooks";
 import type { Sale } from "@/features/sales/types/sale.types";
+import { PageStatCard } from "@/components/common/PageStatCard";
+import { formatCurrency } from "@/utils/formatCurrency";
 import { MobileSearchFilterBar } from "@/components/mobile/MobileSearchFilterBar";
 import { VoiceMicButton } from "@/features/voice/components/VoiceMicButton";
 import type { VoiceParseResult } from "@/features/voice/services/voice.service";
@@ -33,6 +36,8 @@ interface VoiceSaleExtract {
 export default function SalesPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const { summary } = useDashboard();
+  const s = summary.data;
   const [viewingSale, setViewingSale] = useState<Sale | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [voiceDraft, setVoiceDraft] = useState<{ defaultValues: Partial<VoiceSaleExtract>; transcript: string } | null>(null);
@@ -113,6 +118,12 @@ export default function SalesPage() {
     setViewingSale(updated);
   };
 
+  // Compute stat values from available data
+  const totalOrders = pagination?.total ?? 0;
+  const totalSalesAmt = s?.totalSales ?? 0;
+  const avgOrderValue = totalOrders > 0 ? totalSalesAmt / totalOrders : 0;
+  const pendingAmount = s?.pendingAmount ?? 0;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -131,6 +142,38 @@ export default function SalesPage() {
           </div>
         }
       />
+
+      {/* ── Stats bar ── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <PageStatCard
+          label="Total Sales"
+          value={formatCurrency(totalSalesAmt)}
+          delta={s?.salesDelta}
+          deltaLabel="vs last month"
+          isLoading={summary.isLoading}
+          accentColor="#C8873A"
+        />
+        <PageStatCard
+          label="Total Orders"
+          value={totalOrders.toLocaleString("en-IN")}
+          delta={s?.salesDelta}
+          deltaLabel="vs last month"
+          isLoading={isLoading}
+          accentColor="#4C9A6E"
+        />
+        <PageStatCard
+          label="Avg Order Value"
+          value={formatCurrency(avgOrderValue)}
+          isLoading={summary.isLoading || isLoading}
+          accentColor="#5B7EC8"
+        />
+        <PageStatCard
+          label="Pending Amount"
+          value={formatCurrency(pendingAmount)}
+          isLoading={summary.isLoading}
+          accentColor="#B8862E"
+        />
+      </div>
 
       <div className="hidden md:block">
         <SaleFilters

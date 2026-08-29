@@ -29,6 +29,11 @@ export function useCreateSale() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sales"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
+      // Credit sales affect customer ledger balance — invalidate so credit
+      // balance on customer list / detail refreshes immediately.
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      // Also refresh the ledger pages so the new SALE transaction shows up.
+      qc.invalidateQueries({ queryKey: ["ledger"] });
       toast.success("Sale recorded successfully! 🎉");
     },
     onError: () => toast.error("Failed to record sale. Please try again."),
@@ -43,6 +48,10 @@ export function useUpdateSale() {
     onSuccess: (_, { id }) => {
       qc.invalidateQueries({ queryKey: ["sales"] });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.SALE(id) });
+      // Same as create — credit changes affect customer balance display.
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      // Refresh ledger views for the same reason.
+      qc.invalidateQueries({ queryKey: ["ledger"] });
       toast.success("Sale updated successfully!");
     },
     onError: () => toast.error("Failed to update sale."),

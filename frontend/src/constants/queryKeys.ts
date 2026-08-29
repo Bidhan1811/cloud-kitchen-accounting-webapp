@@ -18,6 +18,14 @@ export const QUERY_KEYS = {
   CUSTOMER: (id: string) => ["customers", id] as const,
   CUSTOMER_ORDERS: (id: string) => ["customers", id, "orders"] as const,
 
+  // Customer Credit Ledger
+  CUSTOMER_LEDGER: (id: string, range?: { startDate?: string; endDate?: string }) =>
+    ["customers", id, "ledger", range] as const,
+  CUSTOMER_LEDGER_SUMMARY: (id: string, year: number, month: number) =>
+    ["customers", id, "ledger", "summary", year, month] as const,
+  CREDIT_CUSTOMERS: (filters?: Record<string, any>) =>
+    ["customers", "credit", filters] as const,
+
   // Menu
   MENU_ITEMS: (filters?: Record<string, any>) => ["menu-items", filters] as const,
   MENU_ITEM: (id: string) => ["menu-items", id] as const,

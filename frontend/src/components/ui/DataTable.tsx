@@ -142,7 +142,7 @@ export function DataTable<T>({
                     key={p}
                     onClick={() => onPageChange!(p)}
                     className={cn(
-                      "w-[32px] h-[32px] rounded-[8px] text-[12px] font-[500] transition-all",
+                      "w-[32px] h-[32px] rounded-full text-[12px] font-[500] transition-all flex items-center justify-center",
                       p === page
                         ? "bg-[#C8873A] text-white shadow-[0_2px_8px_rgba(200,135,58,0.25)]"
                         : "text-[#6B5D50] hover:bg-[rgba(200,135,58,0.12)] hover:text-[#C8873A]"

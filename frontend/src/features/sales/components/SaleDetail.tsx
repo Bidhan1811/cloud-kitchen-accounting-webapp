@@ -198,24 +198,23 @@ export function SaleDetail({ sale, onClose, onEdit, onDelete, onPaymentUpdate }:
   </div>
   <script>
     window.onload = function () {
-      setTimeout(function () {
-        window.print();
-        window.onafterprint = function () { window.close(); };
-      }, 400);
+      setTimeout(function() { window.print(); window.close(); }, 150);
     };
   </script>
 </body>
 </html>`);
-
     printWindow.document.close();
-  }, [receiptRef, sale.invoiceId]);
+  }, [sale.invoiceId]);
 
-  // ── Inline payment editor UI ─────────────────────────────────────────────
+  // ── Inline payment editor UI ———————————————————————————————————————————
+  const isCreditSale = sale.paymentMode === "Credit";
+
   const paymentEditor = (
     <div className="glass-card px-4 py-3 flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-[11px] text-[#9E8E80] uppercase tracking-wide font-[500]">Payment</p>
-        {!editingPayment ? (
+        {/* Credit sales are managed via ledger — no inline editing */}
+        {!isCreditSale && !editingPayment && (
           <button
             onClick={() => setEditingPayment(true)}
             className="text-[11px] text-[#C8873A] font-[500] flex items-center gap-1 hover:opacity-80 transition-opacity px-2 py-0.5 rounded-lg hover:bg-[rgba(200,135,58,0.10)]"
@@ -223,7 +222,8 @@ export function SaleDetail({ sale, onClose, onEdit, onDelete, onPaymentUpdate }:
             <ChevronDown size={12} />
             Change
           </button>
-        ) : (
+        )}
+        {!isCreditSale && editingPayment && (
           <button
             onClick={() => {
               setEditingPayment(false);
@@ -238,107 +238,134 @@ export function SaleDetail({ sale, onClose, onEdit, onDelete, onPaymentUpdate }:
         )}
       </div>
 
-      {/* Status pill toggle */}
-      <div className="flex gap-1.5 p-1 bg-[rgba(0,0,0,0.04)] rounded-xl">
-        {PAYMENT_STATUS_OPTIONS.map((s) => {
-          const colors = STATUS_COLORS[s];
-          const isActive = draftStatus === s;
-          return (
-            <button
-              key={s}
-              disabled={!editingPayment}
-              onClick={() => {
-                setDraftStatus(s);
-                if (s === "Paid" && !draftMode) setDraftMode("Cash");
-                if (s === "Partial" && !draftMode) setDraftMode("Cash");
-              }}
-              className={`flex-1 py-1.5 rounded-lg text-[12px] font-[600] transition-all duration-200
-                ${isActive
-                  ? colors.active + " shadow-sm"
-                  : editingPayment
-                    ? "text-[#6B5D50] hover:bg-white/60"
-                    : "text-[#9E8E80]"
-                }
-                ${!editingPayment ? "cursor-default" : "cursor-pointer"}
-              `}
+      {isCreditSale ? (
+        /* Credit sale — read-only, managed via ledger */
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-[600] uppercase tracking-wide px-2.5 py-1 rounded-full bg-[rgba(139,94,52,0.12)] text-[#8B5E34]">
+              Credit (Khata)
+            </span>
+            <span
+              className={`text-[11px] font-[600] uppercase tracking-wide px-2.5 py-1 rounded-full ${
+                sale.paymentStatus === "Paid"
+                  ? "bg-[rgba(76,154,110,0.12)] text-[#4C9A6E]"
+                  : "bg-[rgba(192,82,74,0.10)] text-[#C0524A]"
+              }`}
             >
-              {s}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Payment mode — shown only when status is Paid or Partial */}
-      {(editingPayment ? draftStatus !== "Unpaid" : sale.paymentStatus !== "Unpaid") && (
-        <div className="flex flex-col gap-1.5">
-          <p className="text-[10px] text-[#9E8E80] uppercase tracking-wide font-[500]">Mode</p>
-          <div className="flex gap-1.5 flex-wrap">
-            {PAYMENT_MODE_OPTIONS.map(({ value, label }) => {
-              const isActive = (editingPayment ? draftMode : sale.paymentMode) === value;
+              {sale.paymentStatus}
+            </span>
+          </div>
+          <p className="text-[11px] text-[#9E8E80] leading-snug">
+            {sale.paymentStatus === "Paid"
+              ? "This credit sale has been fully settled via the customer's credit ledger."
+              : "This sale is tracked in the customer's credit ledger. Record a payment there to settle this balance."}
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Status pill toggle */}
+          <div className="flex gap-1.5 p-1 bg-[rgba(0,0,0,0.04)] rounded-xl">
+            {PAYMENT_STATUS_OPTIONS.map((s) => {
+              const colors = STATUS_COLORS[s];
+              const isActive = draftStatus === s;
               return (
                 <button
-                  key={value}
+                  key={s}
                   disabled={!editingPayment}
-                  onClick={() => setDraftMode(value)}
-                  className={`px-3 py-1.5 rounded-lg text-[12px] font-[500] border transition-all duration-150
+                  onClick={() => {
+                    setDraftStatus(s);
+                    if (s === "Paid" && !draftMode) setDraftMode("Cash");
+                    if (s === "Partial" && !draftMode) setDraftMode("Cash");
+                  }}
+                  className={`flex-1 py-1.5 rounded-lg text-[12px] font-[600] transition-all duration-200
                     ${isActive
-                      ? "bg-[#8B5E34] text-white border-[#8B5E34]"
+                      ? colors.active + " shadow-sm"
                       : editingPayment
-                        ? "bg-white/60 text-[#6B5D50] border-[rgba(139,94,52,0.20)] hover:border-[#8B5E34] hover:text-[#8B5E34]"
-                        : "bg-white/40 text-[#9E8E80] border-[rgba(158,142,128,0.15)]"
+                        ? "text-[#6B5D50] hover:bg-white/60"
+                        : "text-[#9E8E80]"
                     }
                     ${!editingPayment ? "cursor-default" : "cursor-pointer"}
                   `}
                 >
-                  {label}
+                  {s}
                 </button>
               );
             })}
           </div>
-        </div>
-      )}
 
-      {/* Amount paid — shown only for Partial */}
-      {(editingPayment ? draftStatus === "Partial" : sale.paymentStatus === "Partial") && (
-        <div className="flex flex-col gap-1.5">
-          <p className="text-[10px] text-[#9E8E80] uppercase tracking-wide font-[500]">
-            Amount Received
-          </p>
-          {editingPayment ? (
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9E8E80] text-[13px] font-mono">₹</span>
-              <input
-                type="number"
-                min={0}
-                max={sale.grandTotal}
-                value={draftAmount}
-                onChange={(e) => setDraftAmount(e.target.value)}
-                className="w-full pl-7 pr-3 py-2 rounded-xl bg-white/80 border border-[rgba(139,94,52,0.25)] text-[13px] font-mono text-[#1C1410] outline-none focus:border-[#C8873A] transition-colors"
-                placeholder="0"
-              />
+          {/* Payment mode — shown only when status is Paid or Partial */}
+          {(editingPayment ? draftStatus !== "Unpaid" : sale.paymentStatus !== "Unpaid") && (
+            <div className="flex flex-col gap-1.5">
+              <p className="text-[10px] text-[#9E8E80] uppercase tracking-wide font-[500]">Mode</p>
+              <div className="flex gap-1.5 flex-wrap">
+                {PAYMENT_MODE_OPTIONS.filter((opt) => opt.value !== "Credit").map(({ value, label }) => {
+                  const isActive = (editingPayment ? draftMode : sale.paymentMode) === value;
+                  return (
+                    <button
+                      key={value}
+                      disabled={!editingPayment}
+                      onClick={() => setDraftMode(value)}
+                      className={`px-3 py-1.5 rounded-lg text-[12px] font-[500] border transition-all duration-150
+                        ${isActive
+                          ? "bg-[#8B5E34] text-white border-[#8B5E34]"
+                          : editingPayment
+                            ? "bg-white/60 text-[#6B5D50] border-[rgba(139,94,52,0.20)] hover:border-[#8B5E34] hover:text-[#8B5E34]"
+                            : "bg-white/40 text-[#9E8E80] border-[rgba(158,142,128,0.15)]"
+                        }
+                        ${!editingPayment ? "cursor-default" : "cursor-pointer"}
+                      `}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          ) : (
-            <span className="font-mono text-[13px] font-[600] text-[#4C9A6E]">
-              {formatCurrency(sale.amountPaid)}
-            </span>
           )}
-        </div>
-      )}
 
-      {/* Save button — appears only when there's a dirty change */}
-      {editingPayment && isDirty && (
-        <button
-          onClick={handlePaymentSave}
-          disabled={isSavingPayment}
-          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#4C9A6E] text-white text-[13px] font-[600] hover:bg-[#3d8060] transition-colors disabled:opacity-60"
-        >
-          {isSavingPayment ? (
-            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <Check size={15} />
+          {/* Amount paid — shown only for Partial */}
+          {(editingPayment ? draftStatus === "Partial" : sale.paymentStatus === "Partial") && (
+            <div className="flex flex-col gap-1.5">
+              <p className="text-[10px] text-[#9E8E80] uppercase tracking-wide font-[500]">
+                Amount Received
+              </p>
+              {editingPayment ? (
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9E8E80] text-[13px] font-mono">₹</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={sale.grandTotal}
+                    value={draftAmount}
+                    onChange={(e) => setDraftAmount(e.target.value)}
+                    className="w-full pl-7 pr-3 py-2 rounded-xl bg-white/80 border border-[rgba(139,94,52,0.25)] text-[13px] font-mono text-[#1C1410] outline-none focus:border-[#C8873A] transition-colors"
+                    placeholder="0"
+                  />
+                </div>
+              ) : (
+                <span className="font-mono text-[13px] font-[600] text-[#4C9A6E]">
+                  {formatCurrency(sale.amountPaid)}
+                </span>
+              )}
+            </div>
           )}
-          {isSavingPayment ? "Saving…" : "Save Payment"}
-        </button>
+
+          {/* Save button — appears only when there's a dirty change */}
+          {editingPayment && isDirty && (
+            <button
+              onClick={handlePaymentSave}
+              disabled={isSavingPayment}
+              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#4C9A6E] text-white text-[13px] font-[600] hover:bg-[#3d8060] transition-colors disabled:opacity-60"
+            >
+              {isSavingPayment ? (
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Check size={15} />
+              )}
+              {isSavingPayment ? "Saving…" : "Save Payment"}
+            </button>
+          )}
+        </>
       )}
     </div>
   );

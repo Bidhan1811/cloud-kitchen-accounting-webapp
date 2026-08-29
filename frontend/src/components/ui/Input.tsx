@@ -32,8 +32,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             className={cn(
               "input",
-              leftIcon && "pl-10",
-              rightIcon && "pr-10",
+              leftIcon && "!pl-10",
+              rightIcon && "!pr-10",
               error && "border-[#C0524A] focus:border-[#C0524A] focus:shadow-[0_0_0_3px_rgba(192,82,74,0.14)]",
               className
             )}

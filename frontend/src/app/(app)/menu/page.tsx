@@ -139,7 +139,7 @@ export default function MenuPage() {
       header: "Item",
       render: (row) => (
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-[8px] bg-[rgba(200,135,58,0.12)] flex items-center justify-center text-[14px] flex-shrink-0">🍽️</div>
+          <div className="w-8 h-8 rounded-[8px] bg-[rgba(155,114,88,0.12)] flex items-center justify-center text-[14px] flex-shrink-0">🍽️</div>
           <p className="text-[13px] font-[500] text-[#1C1410]">{row.name}</p>
         </div>
       ),
@@ -227,7 +227,7 @@ export default function MenuPage() {
         />
         <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-hide -mx-4 px-4">
           <button
-            className={cn("whitespace-nowrap px-4 py-2 rounded-full text-[13px] font-medium border transition-colors", category === "" ? "bg-[#C8873A] text-white border-[#C8873A]" : "bg-glass-input text-text-secondary border-glass-border")}
+            className={cn("whitespace-nowrap px-4 py-2 rounded-full text-[13px] font-medium border transition-all", category === "" ? "bg-primary-gradient border-transparent" : "bg-glass-input text-text-secondary border-glass-border")}
             onClick={() => { setCategory(""); setPage(1); }}
           >
             All Categories
@@ -235,7 +235,7 @@ export default function MenuPage() {
           {MENU_CATEGORIES.map(c => (
             <button
               key={c.value}
-              className={cn("whitespace-nowrap px-4 py-2 rounded-full text-[13px] font-medium border transition-colors", category === c.value ? "bg-[#C8873A] text-white border-[#C8873A]" : "bg-glass-input text-text-secondary border-glass-border")}
+              className={cn("whitespace-nowrap px-4 py-2 rounded-full text-[13px] font-medium border transition-all", category === c.value ? "bg-primary-gradient border-transparent" : "bg-glass-input text-text-secondary border-glass-border")}
               onClick={() => { setCategory(c.value); setPage(1); }}
             >
               {c.label}
@@ -275,7 +275,7 @@ export default function MenuPage() {
                   <MobileListCard
                     key={item._id}
                     onClick={() => setViewItem(item)}
-                    avatar={<div className="w-10 h-10 rounded-full bg-[#C8873A]/10 flex items-center justify-center text-[16px]">🍽️</div>}
+                    avatar={<div className="w-10 h-10 rounded-full bg-[#9B7258]/10 flex items-center justify-center text-[16px]">🍽️</div>}
                     title={item.name}
                     subtitle={item.description ?? "No description"}
                     trailing={
@@ -301,7 +301,7 @@ export default function MenuPage() {
                     "px-4 py-2 rounded-full text-[13px] font-medium border transition-colors",
                     page <= 1
                       ? "text-text-tertiary border-glass-border opacity-50"
-                      : "text-[#C8873A] border-[#C8873A]/40 bg-glass-input"
+                      : "text-[#9B7258] border-[#9B7258]/40 bg-glass-input"
                   )}
                 >
                   Previous
@@ -317,7 +317,7 @@ export default function MenuPage() {
                     "px-4 py-2 rounded-full text-[13px] font-medium border transition-colors",
                     page >= (pagination?.totalPages ?? 1)
                       ? "text-text-tertiary border-glass-border opacity-50"
-                      : "text-[#C8873A] border-[#C8873A]/40 bg-glass-input"
+                      : "text-[#9B7258] border-[#9B7258]/40 bg-glass-input"
                   )}
                 >
                   Next

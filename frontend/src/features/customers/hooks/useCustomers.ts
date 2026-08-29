@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { customerService } from "../services/customer.service";
-import type { CustomerFilters, CreateCustomerPayload } from "../types/customer.types";
+import type { Customer, CustomerFilters, CreateCustomerPayload } from "../types/customer.types";
 import { QUERY_KEYS } from "@/constants/queryKeys";
 
 export function useCustomers(filters: CustomerFilters = {}) {
@@ -40,9 +40,6 @@ export function useCustomerSearch(query: string) {
     queryFn: () => customerService.getAll({ search: query, limit: 8 }),
     enabled: query.trim().length >= 2,
     staleTime: 30_000,
-    // PaginatedResponse<Customer>'s array field name isn't confirmed here —
-    // if your CustomersTable/CustomersPage reads it as `.data`, this matches;
-    // if it actually reads `.customers`, swap the line below to `result.customers`.
     select: (result) => result.data,
   });
 }

@@ -1,10 +1,4 @@
-// Fix in features/customers/types/customer.types.ts:
-//
-// Your Customer model field is `totalSpend` (no "t"), but CustomersPage
-// reads `row.totalSpent` — that typo means every "Total Spend" cell has
-// been rendering formatCurrency(undefined) silently. Also add `outstanding`,
-// which the backend now computes and returns (not stored on the Customer
-// document itself).
+import type { LedgerBalance } from "@/features/ledger/types/ledger.types";
 
 export interface Customer {
   _id: string;
@@ -12,8 +6,13 @@ export interface Customer {
   phone: string;
   address?: string;
   totalOrders: number;
-  totalSpend: number;      // was likely `totalSpent` before — fix the typo at the type level
-  outstanding: number;     // new — computed server-side from unpaid/partial Sale.balanceDue
+  totalSpend: number;
+  outstanding: number; // existing sale-level outstanding — from unpaid/partial Sale.balanceDue
+  isCreditCustomer: boolean;
+  // Only present when isCreditCustomer is true. Computed separately from
+  // `outstanding` above — the two are deliberately independent numbers,
+  // never merged. See backend customer.service.js for why.
+  creditBalance?: LedgerBalance;
   createdAt: string;
   updatedAt: string;
 }
@@ -22,10 +21,15 @@ export interface CustomerFilters {
   search?: string;
   page?: number;
   limit?: number;
+  isCreditCustomer?: boolean;
 }
 
 export interface CreateCustomerPayload {
   name: string;
   phone: string;
   address?: string;
+  isCreditCustomer?: boolean;
+  // Only applied by the backend on the false -> true transition of
+  // isCreditCustomer; ignored otherwise.
+  openingBalance?: number;
 }

@@ -6,6 +6,7 @@ import {
   UtensilsCrossed,
   BarChart2,
   Settings,
+  BookOpen,
 } from "lucide-react";
 import { ROUTES } from "./routes";
 
@@ -21,6 +22,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Sales", icon: ShoppingBag, href: ROUTES.SALES },
   { label: "Expenditure", icon: Receipt, href: ROUTES.EXPENDITURE },
   { label: "Customers", icon: Users, href: ROUTES.CUSTOMERS, adminOnly: true },
+  { label: "Ledgers", icon: BookOpen, href: ROUTES.LEDGER, adminOnly: true },
   { label: "Menu", icon: UtensilsCrossed, href: ROUTES.MENU, adminOnly: true },
   { label: "Reports", icon: BarChart2, href: ROUTES.REPORTS, adminOnly: true },
   { label: "Settings", icon: Settings, href: ROUTES.SETTINGS },

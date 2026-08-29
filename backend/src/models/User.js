@@ -46,7 +46,7 @@ userSchema.methods.generateAccessToken = function () {
       username: this.username,
       role: this.role,
     },
-    process.env.JWT_SECRET || "fallback_secret",
+    process.env.JWT_SECRET,
     {
       expiresIn: process.env.JWT_EXPIRY || "30d",
     }

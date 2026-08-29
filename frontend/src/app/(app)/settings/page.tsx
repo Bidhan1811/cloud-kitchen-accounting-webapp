@@ -3,10 +3,11 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { LogOut, User, ChefHat, Palette, Download, ChevronRight } from "lucide-react";
+import { LogOut, User, ChefHat, Palette, Download, ChevronRight, Sun, Moon, Monitor } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { useAuthContext } from "@/providers/AuthProvider";
+import { useTheme, type ThemeChoice } from "@/providers/ThemeProvider";
 import { generateInitials, stringToColor } from "@/utils/strings";
 import { Badge } from "@/components/ui/Badge";
 import { toast } from "sonner";
@@ -34,6 +35,80 @@ function SettingsSection({ icon, title, description, children, iconBg = "rgba(20
         </div>
       </div>
       {children && <div className="border-t border-[rgba(255,255,255,0.30)] pt-4">{children}</div>}
+    </div>
+  );
+}
+
+const THEME_OPTIONS: { value: ThemeChoice; label: string; icon: React.ReactNode; description: string }[] = [
+  {
+    value: "light",
+    label: "Light",
+    icon: <Sun size={15} />,
+    description: "Warm liquid glass",
+  },
+  {
+    value: "system",
+    label: "System",
+    icon: <Monitor size={15} />,
+    description: "Follows OS setting",
+  },
+  {
+    value: "dark",
+    label: "Dark",
+    icon: <Moon size={15} />,
+    description: "Midnight espresso",
+  },
+];
+
+function ThemeSelector() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-[13px] font-[500] text-[#1C1410]">Interface Theme</p>
+      <div
+        className="grid grid-cols-3 gap-2 p-1 rounded-[14px]"
+        style={{ background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.07)" }}
+        role="radiogroup"
+        aria-label="Theme selection"
+      >
+        {THEME_OPTIONS.map((opt) => {
+          const isActive = theme === opt.value;
+          return (
+            <button
+              key={opt.value}
+              role="radio"
+              aria-checked={isActive}
+              onClick={() => {
+                setTheme(opt.value);
+                toast.success(`Theme set to ${opt.label}`, { duration: 1800 });
+              }}
+              className={cn(
+                "flex flex-col items-center gap-1.5 py-3 px-2 rounded-[10px] transition-all duration-180",
+                "text-center cursor-pointer border",
+                isActive
+                  ? "border-transparent shadow-[var(--shadow-btn)]"
+                  : "bg-transparent text-[#6B5D50] border-transparent hover:bg-white/40 hover:border-[rgba(0,0,0,0.08)]"
+              )}
+              style={isActive ? { background: "var(--accent)", color: "var(--text-on-accent)" } : undefined}
+            >
+              <span
+                className="flex items-center justify-center w-7 h-7 rounded-full"
+                style={{ background: isActive ? "rgba(255,255,255,0.20)" : "rgba(0,0,0,0.06)" }}
+              >
+                {opt.icon}
+              </span>
+              <span className="text-[12px] font-[600] leading-none">{opt.label}</span>
+              <span
+                className="text-[10px] leading-none"
+                style={{ color: isActive ? "rgba(255,255,255,0.70)" : "#9E8E80" }}
+              >
+                {opt.description}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -123,13 +198,7 @@ export default function SettingsPage() {
           description="Customise appearance and preferences"
           iconBg="rgba(100,80,200,0.12)"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[13px] font-[500] text-[#1C1410]">Interface Theme</p>
-              <p className="text-[12px] text-[#9E8E80]">Warm Liquid Glass (Default)</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-[linear-gradient(135deg,#C8873A,#fff9f0)] border border-[rgba(200,135,58,0.30)] shadow-sm" />
-          </div>
+          <ThemeSelector />
         </SettingsSection>
 
         {/* Export */}

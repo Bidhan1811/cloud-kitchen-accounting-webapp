@@ -97,7 +97,7 @@ export function Pagination({
         <button
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage === 1}
-          className="flex items-center justify-center w-8 h-8 rounded-[8px] bg-[rgba(255,255,255,0.4)] border border-[rgba(255,255,255,0.6)] text-[#6B5D50] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[rgba(255,255,255,0.6)] transition-colors"
+          className="flex items-center justify-center w-8 h-8 rounded-full bg-[rgba(255,255,255,0.4)] border border-[rgba(255,255,255,0.6)] text-[#6B5D50] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[rgba(255,255,255,0.6)] transition-colors"
         >
           <ChevronLeft size={16} />
         </button>
@@ -107,7 +107,7 @@ export function Pagination({
         <button
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage === totalPages}
-          className="flex items-center justify-center w-8 h-8 rounded-[8px] bg-[rgba(255,255,255,0.4)] border border-[rgba(255,255,255,0.6)] text-[#6B5D50] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[rgba(255,255,255,0.6)] transition-colors"
+          className="flex items-center justify-center w-8 h-8 rounded-full bg-[rgba(255,255,255,0.4)] border border-[rgba(255,255,255,0.6)] text-[#6B5D50] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[rgba(255,255,255,0.6)] transition-colors"
         >
           <ChevronRight size={16} />
         </button>
@@ -121,7 +121,7 @@ function PageButton({ page, isActive, onClick }: { page: number; isActive: boole
     <button
       onClick={onClick}
       className={cn(
-        "flex items-center justify-center w-8 h-8 rounded-[8px] text-[13px] font-[500] transition-colors border",
+        "flex items-center justify-center w-8 h-8 rounded-full text-[13px] font-[500] transition-colors border",
         isActive
           ? "bg-white border-white text-[#C8873A] shadow-[0_2px_8px_rgba(200,135,58,0.15)]"
           : "bg-[rgba(255,255,255,0.4)] border-[rgba(255,255,255,0.6)] text-[#6B5D50] hover:bg-[rgba(255,255,255,0.6)]"

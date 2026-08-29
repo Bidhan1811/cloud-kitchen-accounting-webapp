@@ -28,6 +28,15 @@ const customerSchema = new Schema(
       default: 0,
       min: 0,
     },
+    // Credit ledger opt-in. Defaults to false for both new and existing
+    // customers (Mongoose applies schema defaults on read for documents
+    // that predate this field, so no migration is required). Only
+    // customers with this set to true can have LedgerTransaction records
+    // created against them — see ledger.service.js.
+    isCreditCustomer: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

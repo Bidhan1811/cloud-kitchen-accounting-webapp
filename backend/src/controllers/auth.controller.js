@@ -24,7 +24,6 @@ const loginUser = asyncHandler(async (req, res) => {
   }
 
   const user = await User.findOne({ username: username.toLowerCase().trim() });
-  console.log("Found user:", user); // does it find the user at all?
 
   if (!user) {
     throw new ApiError(401, "Invalid user credentials");

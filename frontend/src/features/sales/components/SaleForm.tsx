@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, Trash2, X, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Stepper } from "@/components/ui/Stepper";
@@ -61,7 +61,9 @@ const saleSchema = z
     notes: z.string().optional(),
   })
   .superRefine((data, ctx) => {
-    if ((data.paymentStatus === "Paid" || data.paymentStatus === "Partial") && !data.paymentMode) {
+    // Credit mode is always Unpaid — no paymentMode check needed.
+    const isCredit = data.paymentMode === "credit";
+    if (!isCredit && (data.paymentStatus === "Paid" || data.paymentStatus === "Partial") && !data.paymentMode) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["paymentMode"],
@@ -124,11 +126,24 @@ export function SaleForm({ onSubmit, isSubmitting, onCancel, defaultValues }: Sa
   const watchedItems = watch("items");
   const deliveryCharge = watch("deliveryCharge") ?? 0;
   const paymentStatus = watch("paymentStatus");
+  const paymentMode = watch("paymentMode");
   const amountPaid = watch("amountPaid") ?? 0;
+
+  const isCredit = paymentMode === "credit";
 
   const subtotal = watchedItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity || 0), 0);
   const grandTotal = subtotal + deliveryCharge;
   const balanceDue = Math.max(grandTotal - amountPaid, 0);
+
+  // When Credit is selected, force paymentStatus to Unpaid since the full
+  // amount is always deferred to the credit ledger — the backend enforces
+  // the same rule, but doing it here too keeps the UI consistent.
+  useEffect(() => {
+    if (isCredit) {
+      setValue("paymentStatus", "Unpaid");
+      setValue("amountPaid", 0);
+    }
+  }, [isCredit, setValue]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -165,6 +180,12 @@ export function SaleForm({ onSubmit, isSubmitting, onCancel, defaultValues }: Sa
     setValue("customerPhone", customer.phone);
     setValue("customerAddress", customer.address ?? "");
     setShowDropdown(false);
+
+    // Auto-select Credit payment mode for credit customers so the payment
+    // status toggle is hidden immediately and the ledger is targeted correctly.
+    if (customer.isCreditCustomer) {
+      setValue("paymentMode", "credit");
+    }
   };
 
   const handleClearSelectedCustomer = () => {
@@ -172,6 +193,11 @@ export function SaleForm({ onSubmit, isSubmitting, onCancel, defaultValues }: Sa
     setValue("customerId", undefined);
     setValue("customerPhone", "");
     setValue("customerAddress", "");
+    // Reset payment mode to default so the form isn't stuck in credit mode
+    // if the user clears and picks a non-credit customer next.
+    if (paymentMode === "credit") {
+      setValue("paymentMode", "cash");
+    }
   };
 
   const handleAddItem = (item: MenuItem) => {
@@ -288,9 +314,17 @@ export function SaleForm({ onSubmit, isSubmitting, onCancel, defaultValues }: Sa
         {/* Dropdown — solid background (not glass-card) so it fully occludes
             the new-customer fields or anything else behind it */}
         {showDropdown && !selectedCustomer && (
-          <div className="absolute z-20 mt-1 w-full bg-[#FFFBF4] border border-[rgba(200,135,58,0.20)] rounded-[16px] p-1.5 max-h-[240px] overflow-y-auto shadow-[0_12px_32px_rgba(60,40,20,0.18)]">
+          <div
+            className="absolute z-20 mt-1 w-full rounded-[16px] p-1.5 max-h-[240px] overflow-y-auto shadow-[0_12px_32px_rgba(60,40,20,0.18)]"
+            style={{
+              background: "var(--glass-modal)",
+              backdropFilter: "blur(24px)",
+              WebkitBackdropFilter: "blur(24px)",
+              border: "1px solid var(--glass-border)",
+            }}
+          >
             {isSearching ? (
-              <p className="text-[12px] text-[#9E8E80] px-3 py-2">Searching...</p>
+              <p className="text-[12px] text-text-secondary px-3 py-2">Searching...</p>
             ) : matches && matches.length > 0 ? (
               matches.map((customer) => (
                 <button
@@ -301,18 +335,18 @@ export function SaleForm({ onSubmit, isSubmitting, onCancel, defaultValues }: Sa
                 >
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-[700] text-[#C8873A] flex-shrink-0"
-                    style={{ background: stringToColor(customer.name) }}
+                    style={{ background: `${stringToColor(customer.name)}33` }}
                   >
                     {generateInitials(customer.name)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-[500] text-[#1C1410] truncate">{customer.name}</p>
-                    <p className="text-[11px] text-[#9E8E80]">{customer.phone}</p>
+                    <p className="text-[13px] font-[500] text-text-primary truncate">{customer.name}</p>
+                    <p className="text-[11px] text-text-secondary">{customer.phone}</p>
                   </div>
                 </button>
               ))
             ) : (
-              <p className="text-[12px] text-[#9E8E80] px-3 py-2">
+              <p className="text-[12px] text-text-secondary px-3 py-2">
                 No match — this will be added as a new customer.
               </p>
             )}
@@ -509,49 +543,81 @@ export function SaleForm({ onSubmit, isSubmitting, onCancel, defaultValues }: Sa
         </div>
       </div>
 
-      {/* Payment */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Payment section — redesigned so mode is always visible first */}
+      <div className="flex flex-col gap-3">
+        {/* Payment Mode — always shown so Credit can be selected regardless of status */}
         <div className="flex flex-col gap-[6px]">
-          <label className="text-[13px] font-[500] text-[#6B5D50]">Payment Status</label>
+          <label className="text-[13px] font-[500] text-[#6B5D50]">Payment Mode</label>
           <div className="glass-input flex p-[3px] rounded-full gap-[2px]">
-            {(["Paid", "Unpaid", "Partial"] as const).map((s) => (
+            {PAYMENT_MODES.map((m) => (
               <button
-                key={s}
+                key={m.value}
                 type="button"
-                onClick={() => setValue("paymentStatus", s)}
+                onClick={() => setValue("paymentMode", m.value)}
                 className={cn(
                   "flex-1 py-[7px] rounded-full text-[11px] font-[500] transition-all",
-                  paymentStatus === s
-                    ? s === "Paid"
-                      ? "bg-[#4C9A6E] text-white"
-                      : s === "Unpaid"
-                      ? "bg-[#C0524A] text-white"
-                      : "bg-[#B8862E] text-white"
+                  paymentMode === m.value
+                    ? m.value === "credit"
+                      ? "bg-[#8B5E34] text-white"
+                      : "bg-[#C8873A] text-white"
                     : "text-[#9E8E80]"
                 )}
               >
-                {s}
+                {m.label}
               </button>
             ))}
           </div>
+          {errors.paymentMode && (
+            <p className="text-[11px] text-[#C0524A]">{errors.paymentMode.message}</p>
+          )}
         </div>
-        {(paymentStatus === "Paid" || paymentStatus === "Partial") && (
+
+        {/* Credit mode: show ledger info card, hide status toggle */}
+        {isCredit ? (
+          <div className="glass-card p-4 flex items-start gap-3 border border-[rgba(139,94,52,0.25)]">
+            <div className="w-8 h-8 rounded-full bg-[rgba(139,94,52,0.12)] flex items-center justify-center flex-shrink-0 mt-0.5">
+              <BookOpen size={15} className="text-[#8B5E34]" />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <p className="text-[13px] font-[600] text-[#1C1410]">Tracked via Credit Ledger</p>
+              <p className="text-[12px] text-[#6B5D50] leading-snug">
+                {grandTotal > 0
+                  ? `${formatCurrency(grandTotal)} will be added to this customer's outstanding credit balance. Payment status will auto-update once they settle the amount.`
+                  : "The full amount will be added to this customer's outstanding credit balance."}
+              </p>
+            </div>
+          </div>
+        ) : (
+          /* Non-credit: show Paid / Unpaid / Partial status toggle */
           <div className="flex flex-col gap-[6px]">
-            <label className="text-[13px] font-[500] text-[#6B5D50]">Payment Mode</label>
-            <select {...register("paymentMode")} className="input">
-              {PAYMENT_MODES.map((m) => (
-                <option key={m.value} value={m.value}>{m.label}</option>
+            <label className="text-[13px] font-[500] text-[#6B5D50]">Payment Status</label>
+            <div className="glass-input flex p-[3px] rounded-full gap-[2px]">
+              {(["Paid", "Unpaid", "Partial"] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setValue("paymentStatus", s)}
+                  className={cn(
+                    "flex-1 py-[7px] rounded-full text-[11px] font-[500] transition-all",
+                    paymentStatus === s
+                      ? s === "Paid"
+                        ? "bg-[#4C9A6E] text-white"
+                        : s === "Unpaid"
+                        ? "bg-[#C0524A] text-white"
+                        : "bg-[#B8862E] text-white"
+                      : "text-[#9E8E80]"
+                  )}
+                >
+                  {s}
+                </button>
               ))}
-            </select>
-            {errors.paymentMode && (
-              <p className="text-[11px] text-[#C0524A]">{errors.paymentMode.message}</p>
-            )}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Partial payment amount */}
-      {paymentStatus === "Partial" && (
+      {/* Partial payment amount — only for non-credit partial */}
+      {!isCredit && paymentStatus === "Partial" && (
         <div className="glass-card p-4 flex flex-col gap-3">
           <Input
             label="Amount Received"

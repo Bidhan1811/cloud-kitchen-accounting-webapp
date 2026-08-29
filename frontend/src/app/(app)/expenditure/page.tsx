@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Filter } from "lucide-react";
+import { Plus, Filter, Receipt, CalendarDays, CalendarClock, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
@@ -10,6 +10,7 @@ import { SearchInput } from "@/components/ui/SearchInput";
 import { ExpenditureTable } from "@/features/expenditure/components/ExpenditureTable";
 import { ExpenseForm, type ExpenseFormData } from "@/features/expenditure/components/ExpenseForm";
 import { useExpenditures, useCreateExpenditure } from "@/features/expenditure/hooks/useExpenditures";
+import { useDashboard } from "@/features/dashboard/hooks/useDashboard";
 import { useDebounce, useIsMobile } from "@/hooks";
 import { EXPENSE_CATEGORIES } from "@/constants/lookups";
 import { MobileSearchFilterBar } from "@/components/mobile/MobileSearchFilterBar";
@@ -17,6 +18,8 @@ import { MobileBottomDrawer } from "@/components/mobile/MobileBottomDrawer";
 import { VoiceMicButton } from "@/features/voice/components/VoiceMicButton";
 import type { VoiceParseResult } from "@/features/voice/services/voice.service";
 import { cn } from "@/utils/cn";
+import { PageStatCard } from "@/components/common/PageStatCard";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 interface VoiceExpenseExtract {
   category?: string | null;
@@ -101,6 +104,22 @@ export default function ExpenditurePage() {
     page,
     limit: 10,
   });
+
+  // Secondary lightweight queries for stat cards (cached by React Query)
+  const { summary } = useDashboard();
+  const dashSummary = summary.data;
+  const todayData = useExpenditures({ datePreset: "today", limit: 9999 });
+  const weekData  = useExpenditures({ datePreset: "week",  limit: 9999 });
+  const monthData = useExpenditures({ datePreset: "month", limit: 9999 });
+
+  function sumAmounts(items: { amount: number }[] | undefined) {
+    return (items ?? []).reduce((acc, e) => acc + e.amount, 0);
+  }
+
+  const todayTotal = sumAmounts(todayData.data?.data);
+  const weekTotal  = sumAmounts(weekData.data?.data);
+  const monthTotal = sumAmounts(monthData.data?.data);
+
   const { mutateAsync: createExpense, isPending } = useCreateExpenditure();
 
   const expenses = data?.data ?? [];
@@ -226,6 +245,36 @@ export default function ExpenditurePage() {
         }
       />
 
+      {/* ── Stats bar ── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <PageStatCard
+          label="Total Expenses"
+          value={formatCurrency(dashSummary?.totalExpenses ?? 0)}
+          delta={dashSummary?.expensesDelta}
+          deltaLabel="vs last month"
+          isLoading={summary.isLoading}
+          accentColor="#C0524A"
+        />
+        <PageStatCard
+          label="Today"
+          value={formatCurrency(todayTotal)}
+          isLoading={todayData.isLoading}
+          accentColor="#C8873A"
+        />
+        <PageStatCard
+          label="This Week"
+          value={formatCurrency(weekTotal)}
+          isLoading={weekData.isLoading}
+          accentColor="#B8862E"
+        />
+        <PageStatCard
+          label="This Month"
+          value={formatCurrency(monthTotal)}
+          isLoading={monthData.isLoading}
+          accentColor="#4C9A6E"
+        />
+      </div>
+
       {/* Filters — Desktop */}
       <div className="hidden md:flex items-center gap-2 mb-5">
         <SearchInput
@@ -282,7 +331,18 @@ export default function ExpenditurePage() {
       </MobileBottomDrawer>
 
       {/* Expense list */}
-      <div className="glass-card p-1 overflow-hidden md:p-1 max-md:bg-transparent max-md:border-none max-md:shadow-none max-md:p-0">
+      <div className="hidden md:block glass-card p-1 overflow-hidden">
+        <ExpenditureTable
+          data={expenses}
+          isLoading={isLoading}
+          onAdd={() => { setVoiceDraft(null); setDrawerOpen(true); }}
+          page={page}
+          totalPages={pagination?.totalPages ?? 1}
+          total={pagination?.total ?? 0}
+          onPageChange={setPage}
+        />
+      </div>
+      <div className="md:hidden">
         <ExpenditureTable
           data={expenses}
           isLoading={isLoading}

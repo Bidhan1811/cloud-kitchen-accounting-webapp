@@ -25,14 +25,23 @@ export function Sidebar() {
       {/* Brand */}
       <div className="px-5 pt-5 pb-4 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-[10px] bg-[#C8873A] flex items-center justify-center flex-shrink-0">
+          <div
+            className="w-8 h-8 rounded-[10px] flex items-center justify-center flex-shrink-0"
+            style={{ background: "var(--accent)" }}
+          >
             <span className="text-white text-[14px]">🍛</span>
           </div>
           <div className="min-w-0">
-            <p className="font-[600] text-[15px] text-[#1C1410] leading-[1.2] truncate">
+            <p
+              className="font-display text-[26px] leading-none truncate pb-1"
+              style={{ color: "var(--text-primary)" }}
+            >
               Restro Rasoi
             </p>
-            <p className="text-[11px] text-[#9E8E80] leading-[1.3] truncate">
+            <p
+              className="text-[11px] leading-[1.3] truncate"
+              style={{ color: "var(--text-tertiary)" }}
+            >
               Cloud Kitchen
             </p>
           </div>
@@ -40,7 +49,7 @@ export function Sidebar() {
       </div>
 
       {/* Divider */}
-      <div className="h-px bg-[rgba(255,255,255,0.40)] mx-4 mb-2" />
+      <div className="h-px mx-4 mb-2" style={{ background: "var(--glass-border)" }} />
 
       {/* Nav Items */}
       <nav className="flex-1 px-3 py-2 flex flex-col gap-[2px] overflow-y-auto">
@@ -68,16 +77,21 @@ export function Sidebar() {
       {/* User block */}
       {user && (
         <>
-          <div className="h-px bg-[rgba(255,255,255,0.40)] mx-4 mb-3" />
+          <div className="h-px mx-4 mb-3" style={{ background: "var(--glass-border)" }} />
           <div className="px-4 pb-5 flex items-center gap-3 flex-shrink-0">
             <div
-              className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-[600] text-[#C8873A] flex-shrink-0"
-              style={{ background: stringToColor(user.name) }}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-[600] flex-shrink-0"
+              style={{ background: stringToColor(user.name), color: "var(--accent)" }}
             >
               {generateInitials(user.name)}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-[600] text-[#1C1410] truncate">{user.name}</p>
+              <p
+                className="text-[13px] font-[600] truncate"
+                style={{ color: "var(--text-primary)" }}
+              >
+                {user.name}
+              </p>
               <Badge variant={user.role as "owner" | "admin"} className="text-[10px] px-[6px] py-[1px] mt-[1px]">
                 {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
               </Badge>

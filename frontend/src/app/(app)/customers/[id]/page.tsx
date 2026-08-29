@@ -2,7 +2,7 @@
 
 import React, { use } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Receipt, ShoppingBag, Wallet, AlertCircle } from "lucide-react";
+import { ArrowLeft, Receipt, ShoppingBag, Wallet, AlertCircle, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { useCustomer, useCustomerOrders } from "@/features/customers/hooks/useCustomers";
 import { StatusBadge } from "@/components/ui/Badge";
@@ -16,6 +16,7 @@ import type { Sale } from "@/features/sales/types/sale.types";
 import { MobileStatCard } from "@/components/mobile/MobileStatCard";
 import { MobileListCard } from "@/components/mobile/MobileListCard";
 import { useIsMobile } from "@/hooks";
+import { ROUTES } from "@/constants/routes";
 
 export default function CustomerProfilePage({ params }: { params: Promise<{ id: string }>; }) {
   const { id } = use(params);
@@ -66,7 +67,14 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ id: 
           {generateInitials(customer.name)}
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="font-display text-[20px] md:text-[24px] font-[600] text-[#1C1410] truncate">{customer.name}</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-[20px] md:text-[24px] font-[600] text-[#1C1410] truncate">{customer.name}</h1>
+            {customer.isCreditCustomer && (
+              <span className="flex items-center gap-1 text-[10px] font-[600] text-[#C8873A] bg-[rgba(200,135,58,0.12)] border border-[rgba(200,135,58,0.25)] px-2 py-0.5 rounded-full flex-shrink-0">
+                <BookOpen size={9} /> Credit Customer
+              </span>
+            )}
+          </div>
           <p className="text-[13px] text-[#9E8E80] mt-[2px]">{customer.phone}</p>
           {customer.address && <p className="text-[12px] text-[#9E8E80] mt-[1px] truncate">{customer.address}</p>}
         </div>
@@ -86,6 +94,35 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ id: 
           ))}
         </div>
       </div>
+
+      {/* ─── View Ledger CTA (credit customers only) ─── */}
+      {customer.isCreditCustomer && (
+        <div className="glass-card p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[rgba(200,135,58,0.12)] flex items-center justify-center flex-shrink-0">
+              <BookOpen size={18} className="text-[#C8873A]" />
+            </div>
+            <div>
+              <p className="text-[14px] font-[600] text-[#1C1410]">Credit Ledger</p>
+              <p className="text-[12px] text-[#9E8E80]">
+                {customer.creditBalance
+                  ? `${customer.creditBalance.label}: ${formatCurrency(customer.creditBalance.amount)}`
+                  : "View transactions, record payments and adjustments"}
+              </p>
+            </div>
+          </div>
+          <Link
+            href={ROUTES.LEDGER_CUSTOMER(customer._id)}
+            className={cn(
+              "flex items-center gap-1.5 px-4 py-2 rounded-[12px] text-[13px] font-[600] flex-shrink-0 transition-all",
+              "bg-[#C8873A] text-white hover:bg-[#A06828] shadow-sm"
+            )}
+          >
+            <BookOpen size={14} />
+            View Ledger
+          </Link>
+        </div>
+      )}
 
       {/* ─── Mobile stat cards — separate row BELOW the header ─── */}
       <div className="md:hidden grid grid-cols-2 gap-3">

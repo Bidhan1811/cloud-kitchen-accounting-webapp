@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/utils/cn";
@@ -16,6 +17,12 @@ interface DrawerProps {
 }
 
 export function Drawer({ open, onClose, title, subtitle, children, className, footer }: DrawerProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Lock body scroll when drawer is open
   useEffect(() => {
     if (open) {
@@ -35,7 +42,9 @@ export function Drawer({ open, onClose, title, subtitle, children, className, fo
     return () => document.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -113,6 +122,7 @@ export function Drawer({ open, onClose, title, subtitle, children, className, fo
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

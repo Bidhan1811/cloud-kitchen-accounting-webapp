@@ -12,11 +12,19 @@ export function PageHeader({ title, subtitle, action, className }: PageHeaderPro
   return (
     <div className={cn("flex flex-wrap items-start justify-between gap-4 mb-6", className)}>
       <div className="min-w-[200px] flex-1">
-        <h1 className="font-display text-[28px] font-[600] text-[#1C1410] leading-[1.2]">
+        <h1
+          className="font-display text-[42px] font-[600] leading-none pt-1"
+          style={{ color: "var(--text-primary)" }}
+        >
           {title}
         </h1>
         {subtitle && (
-          <p className="text-[13px] text-[#9E8E80] mt-[3px]">{subtitle}</p>
+          <p
+            className="text-[13px] mt-[3px]"
+            style={{ color: "var(--text-tertiary)" }}
+          >
+            {subtitle}
+          </p>
         )}
       </div>
       {action && <div className="flex-shrink-0 mt-[2px]">{action}</div>}

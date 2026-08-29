@@ -63,12 +63,12 @@ export default function LoginPage() {
         <div className="w-14 h-14 rounded-[16px] bg-[#C8873A] flex items-center justify-center mb-4 shadow-[0_4px_20px_rgba(200,135,58,0.35)]">
           <span className="text-3xl">🍛</span>
         </div>
-        <h1 className="font-display text-[26px] font-[600] text-[#1C1410] text-center leading-[1.2]">
+        <h1 className="font-display text-[46px] text-text-primary text-center leading-none">
           Restro Rasoi
         </h1>
-        <p className="text-[12px] text-[#9E8E80] text-center mt-[3px]">Cloud Kitchen Management</p>
-        <p className="font-display text-[20px] font-[600] text-[#1C1410] text-center mt-5">Welcome Back</p>
-        <p className="text-[13px] text-[#6B5D50] text-center mt-[3px]">Sign in to continue</p>
+        <p className="text-[12px] text-text-tertiary text-center mt-[3px]">Cloud Kitchen Management</p>
+        <p className="font-display text-[36px] text-text-primary text-center leading-none mt-5">Welcome Back</p>
+        <p className="text-[13px] text-text-secondary text-center mt-[3px]">Sign in to continue</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -114,7 +114,7 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <p className="text-center text-[11px] text-[#9E8E80] mt-6">
+      <p className="text-center text-[11px] text-text-tertiary mt-6">
         © 2025 Restro Rasoi. All rights reserved.
       </p>
     </motion.div>

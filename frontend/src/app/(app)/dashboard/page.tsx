@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ShoppingBag, TrendingDown, TrendingUp, AlertCircle, Bell } from "lucide-react";
+import { ShoppingBag, TrendingDown, TrendingUp, AlertCircle, Bell, CreditCard, Banknote, Smartphone, Clock, ChevronRight } from "lucide-react";
 import { SummaryCard } from "@/components/common/SummaryCard";
 import { SalesChart } from "@/features/dashboard/components/SalesChart";
 import { TopItemsList } from "@/features/dashboard/components/TopItemsList";
@@ -13,21 +13,39 @@ import { formatCurrency } from "@/utils/formatCurrency";
 import { formatDate } from "@/utils/formatDate";
 import { StatusBadge } from "@/components/ui";
 import { MobileStatCard } from "@/components/mobile/MobileStatCard";
-import { MobileListCard } from "@/components/mobile/MobileListCard";
 import { generateInitials, stringToColor } from "@/utils/strings";
 import { SaleDrawer } from "@/features/sales/components/SaleDrawer";
 import Link from "next/link";
+import { useSales } from "@/features/sales/hooks/useSales";
+import { useCustomers } from "@/features/customers/hooks/useCustomers";
+import { NotificationPanel, deriveNotifications } from "@/components/common/NotificationPanel";
 
 export default function DashboardPage() {
   const { user } = useAuthContext();
   const { summary, chartData, topItems, recentSales } = useDashboard();
   const s = summary.data;
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bellRef = useRef<HTMLButtonElement>(null);
   const [activeCardIndex, setActiveCardIndex] = useState(0);
-
-  // Local drawer state for the mobile "Add Sale" quick action
-  // (previously relied on a global FAB/context that has been removed)
   const [saleDrawerOpen, setSaleDrawerOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  // Fetch all unpaid/partial sales for notifications (cached, lightweight)
+  const { data: unpaidSalesData } = useSales({ status: "Unpaid", limit: 50 });
+  const { data: partialSalesData } = useSales({ status: "Partial", limit: 50 });
+  // Fetch credit customers for ledger balance alerts
+  const { data: creditCustomersData } = useCustomers({ isCreditCustomer: true, limit: 50 });
+
+  const notifications = useMemo(() => {
+    const allPending = [
+      ...(unpaidSalesData?.data ?? []),
+      ...(partialSalesData?.data ?? []),
+    ];
+    const customers = creditCustomersData?.data ?? [];
+    return deriveNotifications(allPending, customers, s?.pendingAmount);
+  }, [unpaidSalesData, partialSalesData, creditCustomersData, s?.pendingAmount]);
+
+  const unreadCount = notifications.filter((n) => n.type !== "success").length;
 
   const mobileStatCards = [
     {
@@ -46,7 +64,7 @@ export default function DashboardPage() {
       trendValue: s?.salesDelta ? `${Math.abs(s.salesDelta).toFixed(1)}%` : undefined,
       trendUp: s?.salesDelta ? s.salesDelta > 0 : undefined,
       hero: true,
-      heroColor: "linear-gradient(135deg, #C8873A 0%, #A0651F 100%)",   
+      heroColor: "linear-gradient(135deg, #C8873A 0%, #A0651F 100%)",
     },
     {
       label: "Expenses",
@@ -66,13 +84,32 @@ export default function DashboardPage() {
     },
   ];
 
-  // Quick action config — "Add Sale" opens the local drawer instead of navigating
   const quickActions = [
     { label: "Add Sale", icon: ShoppingBag, color: "#4C9A6E", type: "action" as const },
     { label: "Add Item", icon: TrendingUp, color: "#C8873A", type: "link" as const, href: "/menu" },
     { label: "Expense", icon: TrendingDown, color: "#C0524A", type: "link" as const, href: "/expenditure" },
     { label: "Customers", icon: AlertCircle, color: "#B8862E", type: "link" as const, href: "/customers" },
   ];
+
+  // Derived data for the 3 bottom info cards
+  const sales = recentSales.data ?? [];
+  const pendingSales = sales.filter((s) => s.status === "Unpaid" || s.status === "Partial");
+
+  // Payment methods breakdown from recent sales
+  const pmCounts = sales.reduce<Record<string, number>>((acc, sale) => {
+    const mode = (sale as any).paymentMode ?? "Other";
+    acc[mode] = (acc[mode] ?? 0) + 1;
+    return acc;
+  }, {});
+  const totalPayments = sales.length || 1;
+  const pmEntries = Object.entries(pmCounts).sort((a, b) => b[1] - a[1]);
+
+  const pmIcons: Record<string, React.ReactNode> = {
+    UPI: <Smartphone size={13} />,
+    Cash: <Banknote size={13} />,
+    Card: <CreditCard size={13} />,
+    Credit: <Clock size={13} />,
+  };
 
   return (
     <motion.div
@@ -83,7 +120,7 @@ export default function DashboardPage() {
       {/* Greeting bar */}
       <div className="flex items-start justify-between mb-5 gap-4">
         <div>
-          <h1 className="font-display text-[22px] md:text-[28px] font-[600] text-[#1C1410] leading-[1.2]">
+          <h1 className="font-display text-[28px] md:text-[32px] font-[600] text-[#1C1410] leading-[1.2]">
             Dashboard
           </h1>
           <p className="text-[12px] md:text-[13px] text-[#9E8E80] mt-[3px]">
@@ -93,18 +130,41 @@ export default function DashboardPage() {
           <p className="text-[11px] text-[#9E8E80] mt-[1px] md:hidden">{formatMonthRange()}</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button className="btn-icon" aria-label="Notifications">
-            <Bell size={18} />
-          </button>
+          {/* Bell with unread badge */}
+          <div className="relative">
+            <button
+              ref={bellRef}
+              className="btn-icon"
+              aria-label="Notifications"
+              onClick={() => setNotifOpen((o) => !o)}
+            >
+              <Bell size={18} />
+            </button>
+            {unreadCount > 0 && (
+              <span
+                className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-[700] text-white pointer-events-none"
+                style={{ background: "#C0524A" }}
+              >
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+            <NotificationPanel
+              open={notifOpen}
+              onClose={() => setNotifOpen(false)}
+              notifications={notifications}
+              anchorRef={bellRef}
+            />
+          </div>
         </div>
       </div>
 
-      {/* ── Desktop: 4-col grid — UNCHANGED ── */}
+      {/* ── Desktop: 4-col summary cards ── */}
       <div className="hidden md:grid grid-cols-4 gap-3 mb-6">
         <SummaryCard
           title="Total Sales"
           value={s?.totalSales ?? 0}
-          icon={<ShoppingBag size={18} className="text-[#C8873A]" />}
+          icon={<ShoppingBag size={18} className="text-white" />}
+          heroColor="linear-gradient(135deg, #C8873A 0%, #A0651F 100%)"
           delta={s?.salesDelta}
           deltaLabel="vs last month"
           delay={0}
@@ -112,8 +172,8 @@ export default function DashboardPage() {
         <SummaryCard
           title="Total Expenses"
           value={s?.totalExpenses ?? 0}
-          icon={<TrendingDown size={18} className="text-[#C0524A]" />}
-          iconBg="rgba(192,82,74,0.12)"
+          icon={<TrendingDown size={18} className="text-white" />}
+          heroColor="linear-gradient(135deg, #C0524A 0%, #8E3931 100%)"
           delta={s?.expensesDelta}
           deltaLabel="vs last month"
           delay={60}
@@ -121,8 +181,8 @@ export default function DashboardPage() {
         <SummaryCard
           title="Net Profit"
           value={s?.netProfit ?? 0}
-          icon={<TrendingUp size={18} className="text-[#4C9A6E]" />}
-          iconBg="rgba(76,154,110,0.12)"
+          icon={<TrendingUp size={18} className="text-white" />}
+          heroColor="linear-gradient(135deg, #2E7D52 0%, #1B5E38 100%)"
           delta={s?.profitDelta}
           deltaLabel="vs last month"
           delay={120}
@@ -130,8 +190,8 @@ export default function DashboardPage() {
         <SummaryCard
           title="Pending Amount"
           value={s?.pendingAmount ?? 0}
-          icon={<AlertCircle size={18} className="text-[#B8862E]" />}
-          iconBg="rgba(184,134,46,0.12)"
+          icon={<AlertCircle size={18} className="text-white" />}
+          heroColor="linear-gradient(135deg, #B8862E 0%, #8A6420 100%)"
           delay={180}
         />
       </div>
@@ -152,7 +212,7 @@ export default function DashboardPage() {
           {mobileStatCards.map((card) => (
             <div
               key={card.label}
-              className={cn_class(card.hero ? "w-[calc(80vw)] min-w-[270px]" : "w-[calc(55vw)] min-w-[180px]", "snap-start flex-shrink-0")}
+              className={cln(card.hero ? "w-[calc(80vw)] min-w-[270px]" : "w-[calc(55vw)] min-w-[180px]", "snap-start flex-shrink-0")}
             >
               <MobileStatCard
                 label={card.label}
@@ -167,12 +227,11 @@ export default function DashboardPage() {
             </div>
           ))}
         </div>
-        {/* Scroll indicator dots */}
         <div className="flex justify-center gap-1.5 mt-2">
           {mobileStatCards.map((_, i) => (
             <div
               key={i}
-              className={cn_class(
+              className={cln(
                 "h-1.5 rounded-full bg-[#4C9A6E] transition-all",
                 i === activeCardIndex ? "w-4 opacity-100" : "w-1.5 opacity-30"
               )}
@@ -181,7 +240,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Chart + Top Items — UNCHANGED */}
+      {/* Chart + Top Items */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-5">
         <motion.div
           className="glass-card p-5 lg:col-span-3"
@@ -234,134 +293,196 @@ export default function DashboardPage() {
                 onClick={() => setSaleDrawerOpen(true)}
                 className="flex flex-col items-center gap-2"
               >
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                  style={{ background: `${action.color}18` }}
-                >
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: `${action.color}18` }}>
                   <action.icon size={22} style={{ color: action.color }} />
                 </div>
-                <span className="text-[11px] text-text-secondary text-center leading-tight">
-                  {action.label}
-                </span>
+                <span className="text-[11px] text-text-secondary text-center leading-tight">{action.label}</span>
               </button>
             ) : (
               <Link key={action.label} href={action.href} className="flex flex-col items-center gap-2">
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                  style={{ background: `${action.color}18` }}
-                >
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: `${action.color}18` }}>
                   <action.icon size={22} style={{ color: action.color }} />
                 </div>
-                <span className="text-[11px] text-text-secondary text-center leading-tight">
-                  {action.label}
-                </span>
+                <span className="text-[11px] text-text-secondary text-center leading-tight">{action.label}</span>
               </Link>
             )
           )}
         </div>
       </div>
 
-      {/* Recent Sales — UNCHANGED */}
+      {/* ── 3 compact info cards — replaces big table ── */}
       <motion.div
-        className="glass-card p-5"
+        className="grid grid-cols-1 md:grid-cols-3 gap-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4 }}
       >
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-[15px] font-[600] text-[#1C1410]">Recent Sales</p>
-            <p className="text-[11px] text-[#9E8E80] mt-[1px]">Latest transactions</p>
+        {/* 1. Recent Transactions */}
+        <div className="glass-card p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[14px] font-[600] text-[#1C1410]">Recent Transactions</p>
+            <Link href="/sales" className="text-[12px] text-[#4C9A6E] font-[500] hover:underline flex items-center gap-0.5">
+              View All <ChevronRight size={13} />
+            </Link>
           </div>
-          <a href="/sales" className="text-[12px] text-[#4C9A6E] font-[500] hover:underline">
-            View all →
-          </a>
-        </div>
-
-        {/* Desktop Table */}
-        <div className="hidden md:block w-full overflow-x-auto">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Invoice ID</th>
-                <th>Customer</th>
-                <th>Date</th>
-                <th>Amount</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentSales.isLoading
-                ? Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i} className="border-b border-[rgba(255,255,255,0.18)]">
-                      {Array.from({ length: 5 }).map((_, j) => (
-                        <td key={j} className="px-[14px] py-[13px]">
-                          <div className="skeleton h-[13px] rounded-[6px] w-3/4" />
-                        </td>
-                      ))}
-                    </tr>
-                  ))
-                : recentSales.data?.map((sale) => (
-                    <tr key={sale._id}>
-                      <td className="font-mono text-[12px] text-[#C8873A]">{sale.invoiceId}</td>
-                      <td>{sale.customerName}</td>
-                      <td className="text-[12px] text-[#9E8E80]">{formatDate(sale.date)}</td>
-                      <td className="amount">{formatCurrency(sale.amount)}</td>
-                      <td><StatusBadge status={sale.status} /></td>
-                    </tr>
-                  ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile List */}
-        <div className="md:hidden flex flex-col gap-3">
-          {recentSales.isLoading
-            ? Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="bg-white/60 rounded-2xl p-4 h-[72px] animate-pulse" />
-              ))
-            : recentSales.data?.map((sale) => {
-                const name = sale.customerName ?? "Walk-in";
-                return (
-                  <MobileListCard
-                    key={sale._id}
-                    avatar={
+          <div className="flex flex-col gap-0">
+            {recentSales.isLoading
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-2 py-2">
+                    <div className="skeleton h-7 w-7 rounded-full flex-shrink-0" />
+                    <div className="flex-1">
+                      <div className="skeleton h-3 w-24 mb-1 rounded" />
+                      <div className="skeleton h-2.5 w-14 rounded" />
+                    </div>
+                    <div className="skeleton h-3 w-14 rounded" />
+                  </div>
+                ))
+              : sales.length === 0
+              ? <p className="text-[12px] text-[#9E8E80] text-center py-4">No recent transactions</p>
+              : sales.slice(0, 5).map((sale) => {
+                  const name = sale.customerName ?? "Walk-in";
+                  return (
+                    <div key={sale._id} className="flex items-center gap-2.5 py-2 border-b border-[rgba(158,142,128,0.08)] last:border-0">
                       <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-bold text-white flex-shrink-0"
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
                         style={{ background: stringToColor(name) }}
                       >
                         {generateInitials(name)}
                       </div>
-                    }
-                    title={name}
-                    subtitle={
-                      <span className="flex items-center gap-1.5">
-                        <span className="font-mono">{sale.invoiceId}</span>
-                        <span>·</span>
-                        <span>{formatDate(sale.date)}</span>
-                      </span>
-                    }
-                    trailing={
-                      <div className="flex flex-col items-end gap-1.5">
-                        <span className="font-jetbrains font-bold text-[14px] text-text-primary leading-none">
-                          {formatCurrency(sale.amount)}
-                        </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-[500] text-[#1C1410] truncate leading-tight">{name}</p>
+                        <p className="text-[11px] text-[#9E8E80] font-mono leading-tight">{sale.invoiceId}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+                        <span className="text-[13px] font-[600] text-[#1C1410]">{formatCurrency(sale.amount)}</span>
                         <StatusBadge status={sale.status} />
                       </div>
-                    }
-                  />
-                );
-              })}
+                    </div>
+                  );
+                })}
+          </div>
+        </div>
+
+        {/* 2. Pending Payments */}
+        <div className="glass-card p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[14px] font-[600] text-[#1C1410]">Pending Payments</p>
+            <Link href="/sales" className="text-[12px] text-[#4C9A6E] font-[500] hover:underline flex items-center gap-0.5">
+              View All <ChevronRight size={13} />
+            </Link>
+          </div>
+          {!recentSales.isLoading && (
+            <div className="rounded-xl bg-[rgba(184,134,46,0.08)] border border-[rgba(200,135,58,0.15)] px-3 py-2 flex items-center justify-between">
+              <span className="text-[12px] text-[#9E8E80]">Outstanding</span>
+              <span className="text-[15px] font-[700] font-mono text-[#C8873A]">{formatCurrency(s?.pendingAmount ?? 0)}</span>
+            </div>
+          )}
+          <div className="flex flex-col gap-0">
+            {recentSales.isLoading
+              ? Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-2 py-2">
+                    <div className="skeleton h-7 w-7 rounded-full flex-shrink-0" />
+                    <div className="flex-1">
+                      <div className="skeleton h-3 w-24 mb-1 rounded" />
+                      <div className="skeleton h-2.5 w-14 rounded" />
+                    </div>
+                    <div className="skeleton h-3 w-14 rounded" />
+                  </div>
+                ))
+              : pendingSales.length === 0
+              ? (
+                <div className="flex flex-col items-center py-6 gap-2">
+                  <div className="w-9 h-9 rounded-full bg-[rgba(91,173,130,0.12)] flex items-center justify-center">
+                    <TrendingUp size={18} className="text-[#4C9A6E]" />
+                  </div>
+                  <p className="text-[12px] text-[#9E8E80]">All payments cleared!</p>
+                </div>
+              )
+              : pendingSales.slice(0, 4).map((sale) => {
+                  const name = sale.customerName ?? "Walk-in";
+                  return (
+                    <div key={sale._id} className="flex items-center gap-2.5 py-2 border-b border-[rgba(158,142,128,0.08)] last:border-0">
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
+                        style={{ background: stringToColor(name) }}
+                      >
+                        {generateInitials(name)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-[500] text-[#1C1410] truncate leading-tight">{name}</p>
+                        <p className="text-[11px] text-[#9E8E80] leading-tight">{formatDate(sale.date)}</p>
+                      </div>
+                      <span className="text-[13px] font-[600] text-[#C0524A] flex-shrink-0">{formatCurrency(sale.amount)}</span>
+                    </div>
+                  );
+                })}
+          </div>
+        </div>
+
+        {/* 3. Payment Methods */}
+        <div className="glass-card p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[14px] font-[600] text-[#1C1410]">Payment Methods</p>
+            <span className="text-[11px] text-[#9E8E80] bg-[rgba(158,142,128,0.10)] px-2 py-0.5 rounded-full">{sales.length} orders</span>
+          </div>
+          {!recentSales.isLoading && (
+            <div className="rounded-xl bg-[rgba(200,135,58,0.06)] border border-[rgba(200,135,58,0.12)] px-3 py-2 flex items-center justify-between">
+              <span className="text-[12px] text-[#9E8E80]">Total Collected</span>
+              <span className="text-[15px] font-[700] font-mono text-[#C8873A]">{formatCurrency(s?.totalSales ?? 0)}</span>
+            </div>
+          )}
+          <div className="flex flex-col gap-3">
+            {recentSales.isLoading
+              ? Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="skeleton h-7 w-7 rounded-lg flex-shrink-0" />
+                    <div className="flex-1">
+                      <div className="skeleton h-2.5 w-20 mb-1.5 rounded" />
+                      <div className="skeleton h-1.5 w-full rounded-full" />
+                    </div>
+                    <div className="skeleton h-3 w-8 rounded" />
+                  </div>
+                ))
+              : pmEntries.length === 0
+              ? <p className="text-[12px] text-[#9E8E80] text-center py-4">No data</p>
+              : pmEntries.map(([mode, count]) => {
+                  const pct = Math.round((count / totalPayments) * 100);
+                  const colors: Record<string, string> = {
+                    UPI: "#C8873A",
+                    Cash: "#4C9A6E",
+                    Card: "#5B7EC8",
+                    Credit: "#B8862E",
+                    Other: "#9E8E80",
+                  };
+                  const color = colors[mode] ?? "#9E8E80";
+                  return (
+                    <div key={mode} className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${color}18`, color }}>
+                        {pmIcons[mode] ?? <CreditCard size={13} />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[12px] font-[500] text-[#1C1410]">{mode}</span>
+                          <span className="text-[11px] text-[#9E8E80] font-[500]">{pct}%</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-[rgba(158,142,128,0.12)] overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+          </div>
         </div>
       </motion.div>
 
-      {/* Add Sale drawer — mobile Quick Action only; desktop uses the Sales page button */}
+      {/* Add Sale drawer */}
       <SaleDrawer open={saleDrawerOpen} onClose={() => setSaleDrawerOpen(false)} />
     </motion.div>
   );
 }
 
-// inline helper so we don't need to import cn (avoids naming collision with existing logic)
-function cn_class(...classes: (string | undefined | false)[]) {
+function cln(...classes: (string | undefined | false)[]) {
   return classes.filter(Boolean).join(" ");
 }
+
