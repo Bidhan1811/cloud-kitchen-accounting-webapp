@@ -81,10 +81,10 @@ body {
    to let the script breathe at heading sizes.                        */
 .font-display,
 [class*="font-display"] {
-  font-family: var(--font-luxurious, Georgia, serif);
+  font-family: var(--font-luxurious), Georgia, serif;
   font-style: normal;
   letter-spacing: 0.08em;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 /* ─── Background Layer ──────────────────────────────────────────── */
