@@ -429,20 +429,19 @@ export default function DashboardPage() {
         </div>
 
         {/* 3. Payment Methods — donut chart */}
-        <div className="glass-card p-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
+        <div className="glass-card p-4 flex flex-col">
+          <div className="flex items-center justify-between mb-3">
             <p className="text-[14px] font-[600] text-[#1C1410]">Payment Methods</p>
             <span className="text-[11px] text-[#9E8E80] bg-[rgba(158,142,128,0.10)] px-2 py-0.5 rounded-full">{sales.length} orders</span>
           </div>
           {recentSales.isLoading ? (
-            <div className="flex items-center gap-5 py-2">
-              <div className="skeleton w-[90px] h-[90px] rounded-full flex-shrink-0" />
-              <div className="flex-1 flex flex-col gap-2">
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 py-4">
+              <div className="skeleton w-[150px] h-[150px] rounded-full" />
+              <div className="flex gap-4">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <div className="skeleton w-2.5 h-2.5 rounded-sm" />
-                    <div className="skeleton h-2.5 w-20 rounded" />
-                    <div className="skeleton h-2.5 w-8 rounded ml-auto" />
+                  <div key={i} className="flex items-center gap-1.5">
+                    <div className="skeleton w-2.5 h-2.5 rounded-full" />
+                    <div className="skeleton h-2.5 w-12 rounded" />
                   </div>
                 ))}
               </div>
@@ -450,7 +449,7 @@ export default function DashboardPage() {
           ) : pmEntries.length === 0 ? (
             <p className="text-[12px] text-[#9E8E80] text-center py-4">No data</p>
           ) : (
-            <DonutChart entries={pmEntries} totalPayments={totalPayments} colors={PM_COLORS} icons={pmIcons} />
+            <DonutChart entries={pmEntries} totalPayments={totalPayments} colors={PM_COLORS} />
           )}
         </div>
       </motion.div>
@@ -470,35 +469,40 @@ interface DonutChartProps {
   entries: [string, number][];
   totalPayments: number;
   colors: Record<string, string>;
-  icons: Record<string, React.ReactNode>;
 }
 
-function DonutChart({ entries, totalPayments, colors, icons }: DonutChartProps) {
-  const SIZE = 100;
-  const STROKE = 14;
+function DonutChart({ entries, totalPayments, colors }: DonutChartProps) {
+  const SIZE = 170;
+  const STROKE = 20;
   const R = (SIZE - STROKE) / 2;
   const CIRC = 2 * Math.PI * R;
   const CENTER = SIZE / 2;
+  const GAP_FRAC = entries.length > 1 ? 0.018 : 0;
 
   let cumulative = 0;
   const slices = entries.map(([mode, count]) => {
     const pct = count / totalPayments;
+    const dash = CIRC * Math.max(0, pct - GAP_FRAC);
     const offset = CIRC * (1 - cumulative);
-    const dash = CIRC * pct;
     cumulative += pct;
-    return { mode, count, pct, offset, dash };
+    return { mode, pct, dash, offset };
   });
 
   return (
-    <div className="flex items-center gap-4 py-1">
-      {/* Donut */}
-      <div className="flex-shrink-0 relative" style={{ width: SIZE, height: SIZE }}>
-        <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ transform: "rotate(-90deg)" }}>
-          {/* Track */}
+    <div className="flex flex-col items-center gap-4 flex-1 justify-center py-2">
+      {/* Large centred donut */}
+      <div className="relative flex-shrink-0" style={{ width: SIZE, height: SIZE }}>
+        <svg
+          width={SIZE}
+          height={SIZE}
+          viewBox={`0 0 ${SIZE} ${SIZE}`}
+          style={{ transform: "rotate(-90deg)" }}
+        >
+          {/* Track ring */}
           <circle
             cx={CENTER} cy={CENTER} r={R}
             fill="none"
-            stroke="rgba(158,142,128,0.10)"
+            stroke="rgba(158,142,128,0.08)"
             strokeWidth={STROKE}
           />
           {slices.map(({ mode, dash, offset }) => {
@@ -510,48 +514,33 @@ function DonutChart({ entries, totalPayments, colors, icons }: DonutChartProps) 
                 fill="none"
                 stroke={color}
                 strokeWidth={STROKE}
-                strokeLinecap="round"
+                strokeLinecap="butt"
                 strokeDasharray={`${dash} ${CIRC - dash}`}
                 strokeDashoffset={offset}
-                style={{ transition: "stroke-dasharray 0.6s ease, stroke-dashoffset 0.6s ease" }}
+                style={{
+                  transition: "stroke-dasharray 0.7s cubic-bezier(0.32,0.72,0,1), stroke-dashoffset 0.7s cubic-bezier(0.32,0.72,0,1)",
+                }}
               />
             );
           })}
         </svg>
         {/* Centre label */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-[15px] font-[700] text-[#1C1410] leading-none">{totalPayments}</span>
-          <span className="text-[9px] text-[#9E8E80] mt-0.5 leading-none">orders</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-[24px] font-[700] text-[#1C1410] leading-none">{totalPayments}</span>
+          <span className="text-[11px] text-[#9E8E80] mt-1 leading-none tracking-wide">orders</span>
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex-1 flex flex-col gap-2 min-w-0">
+      {/* Thin horizontal legend row */}
+      <div className="flex items-center justify-center gap-4 flex-wrap w-full border-t border-[rgba(158,142,128,0.10)] pt-3">
         {entries.map(([mode, count]) => {
           const color = colors[mode] ?? "#9E8E80";
           const pct = Math.round((count / totalPayments) * 100);
           return (
-            <div key={mode} className="flex items-center gap-2 min-w-0">
-              <div
-                className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 text-white"
-                style={{ background: color }}
-              >
-                <span style={{ color: "white", display: "flex" }}>
-                  {icons[mode] ?? <CreditCard size={11} />}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] font-[500] text-[#1C1410] truncate">{mode}</span>
-                  <span className="text-[11px] text-[#9E8E80] font-mono ml-1 flex-shrink-0">{pct}%</span>
-                </div>
-                <div className="h-1 rounded-full mt-0.5 bg-[rgba(158,142,128,0.10)] overflow-hidden">
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${pct}%`, background: color, transition: "width 0.6s ease" }}
-                  />
-                </div>
-              </div>
+            <div key={mode} className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
+              <span className="text-[12px] font-[500] text-[#1C1410]">{mode}</span>
+              <span className="text-[11px] text-[#9E8E80] font-mono">{pct}%</span>
             </div>
           );
         })}
