@@ -28,12 +28,15 @@ apiClient.interceptors.response.use(
     const resData = response.data;
     if (resData && resData.success !== undefined && resData.data) {
       if (resData.data.pagination) {
-        const arrayKey = Object.keys(resData.data).find((k) => k !== "pagination");
+        const arrayKey = Object.keys(resData.data).find(
+          (k) => k !== "pagination" && k !== "stats"
+        );
         if (arrayKey && Array.isArray(resData.data[arrayKey])) {
           response.data = {
             success: resData.success,
             data: resData.data[arrayKey],
             pagination: resData.data.pagination,
+            stats: resData.data.stats,
             message: resData.message,
           };
         }

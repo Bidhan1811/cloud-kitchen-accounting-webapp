@@ -79,13 +79,27 @@ export const getSales = async ({
 
   const skip = (parseInt(page) - 1) * parseInt(limit);
 
-  const sales = await Sale.find(query)
-    .populate("customer", "name phone address totalOrders totalSpend isCreditCustomer")
-    .sort({ date: -1, createdAt: -1 })
-    .skip(skip)
-    .limit(parseInt(limit));
+  const [sales, total, statsAgg] = await Promise.all([
+    Sale.find(query)
+      .populate("customer", "name phone address totalOrders totalSpend isCreditCustomer")
+      .sort({ date: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit)),
+    Sale.countDocuments(query),
+    Sale.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: null,
+          totalSales: { $sum: "$grandTotal" },
+          totalOrders: { $sum: 1 },
+          pendingAmount: { $sum: "$balanceDue" },
+        },
+      },
+    ]),
+  ]);
 
-  const total = await Sale.countDocuments(query);
+  const statsData = statsAgg[0] || { totalSales: 0, totalOrders: 0, pendingAmount: 0 };
 
   return {
     sales,
@@ -94,6 +108,11 @@ export const getSales = async ({
       page: parseInt(page),
       limit: parseInt(limit),
       totalPages: Math.ceil(total / parseInt(limit)),
+    },
+    stats: {
+      totalSales: statsData.totalSales,
+      totalOrders: statsData.totalOrders,
+      pendingAmount: statsData.pendingAmount,
     },
   };
 };

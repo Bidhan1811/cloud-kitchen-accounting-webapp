@@ -56,4 +56,14 @@ export const dashboardService = {
     const { data } = await apiClient.get<ApiResponse<RecentSale[]>>("/dashboard/recent-sales");
     return data.data;
   },
+
+  getMonthlySales: async (): Promise<number> => {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+    const { data } = await apiClient.get<ApiResponse<{ totalSales: number }>>(
+      `/dashboard/monthly?month=${month}&year=${year}`
+    );
+    return data.data?.totalSales ?? 0;
+  },
 };

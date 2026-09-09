@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Eye, Pencil, Trash2, FileText } from "lucide-react";
+import { Eye, Pencil, Trash2, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -178,7 +178,36 @@ export function SalesTable({
             );
           })
         )}
+
+        {/* Mobile Pagination */}
+        {totalPages > 1 && !isLoading && (
+          <div className="flex items-center justify-between mt-2 px-1">
+            <p className="text-[12px] text-[#9E8E80]">
+              Page {page} of {totalPages}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                className="btn-icon"
+                onClick={() => onPageChange(page - 1)}
+                disabled={page === 1}
+                aria-label="Previous page"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="text-[13px] font-[500] text-[#6B5D50]">{page}</span>
+              <button
+                className="btn-icon"
+                onClick={() => onPageChange(page + 1)}
+                disabled={page === totalPages}
+                aria-label="Next page"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
 
       <ConfirmDialog
         open={!!deleteId}

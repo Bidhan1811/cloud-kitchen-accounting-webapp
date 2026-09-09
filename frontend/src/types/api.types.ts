@@ -15,6 +15,7 @@ export interface PaginatedResponse<T> {
     limit: number;
     totalPages: number;
   };
+  stats?: Record<string, number>;
 }
 
 export interface ErrorResponse {

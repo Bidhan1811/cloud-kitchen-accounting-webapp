@@ -31,3 +31,11 @@ export function useDashboard(period = "this_month") {
 
   return { summary, chartData, topItems, recentSales };
 }
+
+export function useMonthlySales() {
+  return useQuery({
+    queryKey: ["dashboard", "monthly-sales"],
+    queryFn: dashboardService.getMonthlySales,
+    staleTime: 1000 * 60 * 5,
+  });
+}
