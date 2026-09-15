@@ -4,7 +4,31 @@ import * as dashboardService from "../services/dashboard.service.js";
 import { ApiError } from "../utils/ApiError.js";
 
 export const getSummary = asyncHandler(async (req, res) => {
-  const data = await dashboardService.getDashboardSummary();
+  const { period } = req.query;
+  const matchStage = {};
+  
+  if (period) {
+    const now = new Date();
+    let startDate;
+    let endDate = new Date();
+    
+    if (period === "this_month") {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (period === "last_month") {
+      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    } else if (period === "last_3_months") {
+      startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+    } else if (period === "this_year") {
+      startDate = new Date(now.getFullYear(), 0, 1);
+    }
+    
+    if (startDate) {
+      matchStage.date = { $gte: startDate, $lte: endDate };
+    }
+  }
+
+  const data = await dashboardService.getDashboardSummary(matchStage);
   return res.status(200).json(new ApiResponse(200, data, "Overall summary fetched successfully"));
 });
 
