@@ -4,6 +4,7 @@ import authRouter from "./auth.routes.js";
 import menuRouter from "./menu.routes.js";
 import saleRouter from "./sale.routes.js";
 import expenditureRouter from "./expenditure.routes.js";
+import homeExpenditureRouter from "./homeExpenditure.routes.js";
 import customerRouter from "./customer.routes.js";
 import ledgerRouter from "./ledger.routes.js";
 import dashboardRouter from "./dashboard.routes.js";
@@ -16,6 +17,7 @@ router.use("/auth", authRouter);
 router.use("/menu", menuRouter);
 router.use("/sales", saleRouter);
 router.use("/expenditures", expenditureRouter);
+router.use("/home-expenses", homeExpenditureRouter);
 router.use("/customers", customerRouter);
 // Mounted at the same base as customerRouter — ledger.routes.js defines
 // paths like "/:customerId/ledger", so together this resolves to

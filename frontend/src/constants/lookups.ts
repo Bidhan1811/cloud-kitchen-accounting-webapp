@@ -21,6 +21,21 @@ export const EXPENSE_CATEGORIES = [
 
 export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number]["value"];
 
+export const HOME_EXPENSE_CATEGORIES = [
+  { value: "groceries", label: "Groceries" },
+  { value: "rent", label: "Rent" },
+  { value: "utilities", label: "Utilities" },
+  { value: "medical", label: "Medical" },
+  { value: "education", label: "Education" },
+  { value: "transport", label: "Transport" },
+  { value: "entertainment", label: "Entertainment" },
+  { value: "clothing", label: "Clothing" },
+  { value: "household", label: "Household" },
+  { value: "miscellaneous", label: "Miscellaneous" },
+] as const;
+
+export type HomeExpenseCategory = (typeof HOME_EXPENSE_CATEGORIES)[number]["value"];
+
 export const SALE_STATUS = [
   { value: "paid", label: "Paid" },
   { value: "unpaid", label: "Unpaid" },

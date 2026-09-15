@@ -3,6 +3,7 @@ export const ROUTES = {
   DASHBOARD: "/dashboard",
   SALES: "/sales",
   EXPENDITURE: "/expenditure",
+  HOME_EXPENSES: "/home-expenses",
   CUSTOMERS: "/customers",
   CUSTOMER: (id: string) => `/customers/${id}`,
   LEDGER: "/ledger",

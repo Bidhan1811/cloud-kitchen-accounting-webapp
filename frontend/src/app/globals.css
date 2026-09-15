@@ -1351,3 +1351,91 @@ body {
     display: none !important;
   }
 }
+
+/* ─── Home Expense Stats Charts ──────────────────────────────────── */
+.home-stat-tooltip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--glass-modal);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-primary);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.home-stat-tooltip-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.home-stat-tooltip-label {
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.home-stat-tooltip-value {
+  font-family: var(--font-jetbrains, 'JetBrains Mono', monospace);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-left: 4px;
+}
+
+.home-stat-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: var(--accent-light);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* ─── Home Category Badge — dark-mode colour overrides ───────────── */
+/*
+ * The HomeCategoryBadge component sets inline styles using
+ * var(--hcb-bg-<category>, <light-fallback>) and
+ * var(--hcb-color-<category>, <light-fallback>).
+ * Defining those custom properties in [data-theme="dark"] means
+ * the browser will pick them up automatically without any JS.
+ */
+[data-theme="dark"] {
+  --hcb-bg-groceries:     rgba(91, 173, 130, 0.14);
+  --hcb-color-groceries:  #5BAD82;
+
+  --hcb-bg-rent:          rgba(212, 160, 74, 0.14);
+  --hcb-color-rent:       #D4A04A;
+
+  --hcb-bg-utilities:     rgba(123, 158, 217, 0.16);
+  --hcb-color-utilities:  #7B9ED9;
+
+  --hcb-bg-medical:       rgba(217, 123, 115, 0.14);
+  --hcb-color-medical:    #D97B73;
+
+  --hcb-bg-education:     rgba(155, 126, 200, 0.16);
+  --hcb-color-education:  #9B7EC8;
+
+  --hcb-bg-transport:     rgba(45, 185, 170, 0.14);
+  --hcb-color-transport:  #2DB9AA;
+
+  --hcb-bg-entertainment: rgba(251, 171, 55, 0.14);
+  --hcb-color-entertainment: #FBAB37;
+
+  --hcb-bg-clothing:      rgba(244, 114, 182, 0.14);
+  --hcb-color-clothing:   #F472B6;
+
+  --hcb-bg-household:     rgba(148, 163, 184, 0.14);
+  --hcb-color-household:  #94A3B8;
+
+  --hcb-bg-miscellaneous: rgba(217, 150, 74, 0.14);
+  --hcb-color-miscellaneous: #D9964A;
+}

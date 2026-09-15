@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/utils/cn";
-import { LayoutDashboard, ShoppingBag, Receipt, Users, MoreHorizontal, UtensilsCrossed, BookOpen, X, Settings } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Receipt, Users, MoreHorizontal, UtensilsCrossed, BookOpen, X, Settings, Home } from "lucide-react";
 import { useAuthContext } from "@/providers/AuthProvider";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -17,6 +17,13 @@ const BOTTOM_NAV_ITEMS = [
 
 // Items shown inside the "More" popover
 const MORE_ITEMS = [
+  {
+    label: "Home Expenses",
+    icon: Home,
+    href: "/home-expenses",
+    adminOnly: true,
+    description: "Track personal & household expenses",
+  },
   {
     label: "Menu",
     icon: UtensilsCrossed,

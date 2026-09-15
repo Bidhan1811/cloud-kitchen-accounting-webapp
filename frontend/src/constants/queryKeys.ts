@@ -13,6 +13,10 @@ export const QUERY_KEYS = {
   EXPENDITURES: (filters?: Record<string, any>) => ["expenditures", filters] as const,
   EXPENDITURE: (id: string) => ["expenditures", id] as const,
 
+  // Home Expenditure
+  HOME_EXPENDITURES: (filters?: Record<string, any>) => ["home-expenditures", filters] as const,
+  HOME_EXPENDITURE: (id: string) => ["home-expenditures", id] as const,
+
   // Customers
   CUSTOMERS: (filters?: Record<string, any>) => ["customers", filters] as const,
   CUSTOMER: (id: string) => ["customers", id] as const,
